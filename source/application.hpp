@@ -2,6 +2,7 @@
 
 #include "window.hpp"
 #include "types.hpp"
+#include "rendering_backend/renderer.hpp"
 
 struct Application 
 {
@@ -19,6 +20,7 @@ struct Application
     private:
         AppWindow window;
         AppState state;
+        Renderer renderer;
 
         void init_window();
         void mouse_callback(f64 x, f64 y);

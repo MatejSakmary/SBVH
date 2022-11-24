@@ -11,6 +11,7 @@
 #define GLFW_EXPOSE_NATIVE_X11
 #endif
 #include <GLFW/glfw3native.h>
+#include <daxa/daxa.hpp>
 
 #include "types.hpp"
 
@@ -78,9 +79,9 @@ struct AppWindow
         auto get_native_handle()
         {
 #if defined(_WIN32)
-            return glfwGetWin32Window(window);
+            return reinterpret_cast<daxa::NativeWindowHandle>(glfwGetWin32Window(window));
 #elif defined(__linux__)
-            return glfwGetX11Window(window);
+            return reinterpret_cast<daxa::NativeWindowHandle>(glfwGetX11Window(window));
 #endif
         }
 

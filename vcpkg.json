@@ -1,16 +1,33 @@
 {
-    "name" : "sbvh",
-    "version" : "0.0.1",
-    "dependencies" : [
-        "glfw3",
-        "glm",
-        "assimp",
-        {
-            "name" : "imgui",
-            "features" : [
-                "glfw-binding",
-                "docking-experimental"
-            ]
-        }
-    ]
+  "name": "sbvh",
+  "version": "0.0.1",
+  "dependencies": [
+    {
+      "name": "daxa",
+      "features": [
+        "glslang",
+        "utils"
+      ]
+    },
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding",
+        "docking-experimental"
+      ]
+    },
+    "glm",
+    "assimp"
+  ],
+  "builtin-baseline": "01b29f6d8212bc845da64773b18665d682f5ab66",
+  "overrides": [
+    {
+      "name": "daxa",
+      "version-string": "nightly#12"
+    },
+    {
+      "name": "glfw3",
+      "version-string": "custom"
+    }
+  ]
 }

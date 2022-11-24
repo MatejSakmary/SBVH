@@ -48,7 +48,8 @@ Application::Application() :
             std::placeholders::_2)
         }
     ),
-    state{ .minimized = false }
+    state{ .minimized = false },
+    renderer{window.get_native_handle()}
 {
 }
 
@@ -62,5 +63,6 @@ void Application::main_loop()
     {
        glfwPollEvents();
        if (state.minimized) { DEBUG_OUT("[Application::main_loop()] Window minimized "); continue; } 
+        renderer.draw();
     }
 }
