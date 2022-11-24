@@ -1,0 +1,16 @@
+{
+    "name" : "sbvh",
+    "version" : "0.0.1",
+    "dependencies" : [
+        "glfw3",
+        "glm",
+        "assimp",
+        {
+            "name" : "imgui",
+            "features" : [
+                "glfw-binding",
+                "docking-experimental"
+            ]
+        }
+    ]
+}
