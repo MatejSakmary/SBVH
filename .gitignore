@@ -33,3 +33,7 @@
 
 build/*
 .vscode/*
+
+# Geometry
+*.mtl
+*.obj

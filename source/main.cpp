@@ -4,5 +4,6 @@
 
 int main()
 {
-    std::cout << "hello world" << std::endl;
+    Application application = Application();
+    application.main_loop();
 }

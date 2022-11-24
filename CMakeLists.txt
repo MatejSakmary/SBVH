@@ -12,4 +12,13 @@ find_package(imgui CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 
+target_link_libraries(${PROJECT_NAME}
+    glm::glm
+    imgui::imgui
+    assimp
+    glfw3
+)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    "$<$<CONFIG:Debug>:LOG_DEBUG>"
+)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
