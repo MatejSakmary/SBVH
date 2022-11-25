@@ -7,15 +7,15 @@ RWBuffer(TransformData) transforms = daxa_push_constant.transforms;
 #if defined(_VERTEX)
 // ===================== VERTEX SHADER ===============================
 f32vec3 vertices[8] = f32vec3[](
-    f32vec3( 0.0,  0.5, 0.0 ),
+    f32vec3( 0.0,  1.0, 0.0 ),
     f32vec3( 0.0,  0.0, 0.0 ),
-    f32vec3( 0.5,  0.0, 0.0 ),
-    f32vec3( 0.5,  0.5, 0.0 ),
+    f32vec3( 1.0,  0.0, 0.0 ),
+    f32vec3( 1.0,  1.0, 0.0 ),
 
-    f32vec3( 0.5,  0.5, 1.0 ),
-    f32vec3( 0.0,  0.5, 1.0 ),
+    f32vec3( 1.0,  1.0, 1.0 ),
+    f32vec3( 0.0,  1.0, 1.0 ),
     f32vec3( 0.0,  0.0, 1.0 ),
-    f32vec3( 0.5,  0.0, 1.0 )
+    f32vec3( 1.0,  0.0, 1.0 )
 );
 
 void main()

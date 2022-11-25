@@ -131,7 +131,10 @@ void Renderer::draw()
 
     // ==============  TODO(msakmary) move this somewhere where it belongs ==================
     f32 aspect = f32(context.swapchain.get_surface_extent().x) / f32(context.swapchain.get_surface_extent().y);
-    f32mat4x4 m_proj_view = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 100.0f) * camera.get_view_matrix();
+    f32mat4x4 m_proj = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 100.0f);
+    /* GLM is using OpenGL standard where Y coordinate of the clip coordinates is inverted */
+    m_proj[1][1] *= -1;
+    f32mat4x4 m_proj_view = m_proj * camera.get_view_matrix();
     context.buffers.transforms_buffer.cpu_buffer =
     {
         .m_proj_view = *reinterpret_cast<daxa::f32mat4x4 *>(&m_proj_view)

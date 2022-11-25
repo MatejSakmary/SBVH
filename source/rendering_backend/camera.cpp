@@ -2,7 +2,7 @@
 
 Camera::Camera(const CameraInfo & info) : 
     position{info.position}, front{info.front}, up{info.up},
-    speed{50.0f}, pitch{0.0f}, yaw{-90.0f}, sensitivity{0.08f}
+    speed{5.0f}, pitch{0.0f}, yaw{-90.0f}, sensitivity{0.08f}
 {
 }
 
@@ -48,7 +48,7 @@ f32mat4x4 Camera::get_view_matrix()
 {
     f32vec3 front_;
     front_.x = glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
-    front_.y = glm::sin(glm::radians(pitch));
+    front_.y = -glm::sin(glm::radians(pitch));
     front_.z = glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
 
     front = glm::normalize(front_);
