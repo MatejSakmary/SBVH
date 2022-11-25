@@ -1,7 +1,8 @@
 #include "renderer.hpp"
 
 Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
-    context{.vulkan_context = daxa::create_context({.enable_validation = true}),
+    camera {{.position = {0.0, 0.0, 0.0}, .front = {0.0, 0.0, 1.0}, .up = {0.0, 1.0, 0.0}}},
+    context {.vulkan_context = daxa::create_context({.enable_validation = true}),
             .device = context.vulkan_context.create_device({.debug_name = "Daxa device"})}
 {
     context.swapchain = context.device.create_swapchain({ 
@@ -34,9 +35,11 @@ Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
         .debug_name = "cube_indices"
     });
 
-    context.buffers.index_buffer.cpu_buffer = {
+    context.buffers.index_buffer.cpu_buffer = 
+    {
         0, 1, 2, 3, 4, 5, 0, 3, 0xFFFFFFFF,
-        6, 5, 4, 7, 2, 1, 6, 7, 0xFFFFFFFF};
+        6, 5, 4, 7, 2, 1, 6, 7, 0xFFFFFFFF
+    };
     create_main_task();
 }
 
@@ -60,6 +63,17 @@ void Renderer::create_main_task()
         }
     );
 
+    context.main_task_list.buffers.t_transform_data = 
+        context.main_task_list.task_list.create_task_buffer(
+        {
+            .initial_access = daxa::AccessConsts::NONE,
+            .debug_name = "t_transform_data"
+        }
+    );
+    context.main_task_list.task_list.add_runtime_buffer(
+        context.main_task_list.buffers.t_transform_data,
+        context.buffers.transforms_buffer.gpu_buffer);
+
     context.main_task_list.buffers.t_cube_indices = 
         context.main_task_list.task_list.create_task_buffer(
         {
@@ -72,7 +86,7 @@ void Renderer::create_main_task()
         context.main_task_list.buffers.t_cube_indices,
         context.buffers.index_buffer.gpu_buffer);
 
-    task_fill_index_buffer(context);
+    task_fill_buffers(context);
     task_draw_AABB(context);
     context.main_task_list.task_list.submit({});
     context.main_task_list.task_list.present({});
@@ -114,6 +128,15 @@ void Renderer::draw()
         }
         return false;
     };
+
+    // ==============  TODO(msakmary) move this somewhere where it belongs ==================
+    f32 aspect = f32(context.swapchain.get_surface_extent().x) / f32(context.swapchain.get_surface_extent().y);
+    f32mat4x4 m_proj_view = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 100.0f) * camera.get_view_matrix();
+    context.buffers.transforms_buffer.cpu_buffer =
+    {
+        .m_proj_view = *reinterpret_cast<daxa::f32mat4x4 *>(&m_proj_view)
+    };
+    // ======================================================================================
 
     context.main_task_list.task_list.remove_runtime_image(
         context.main_task_list.images.t_swapchain_image,

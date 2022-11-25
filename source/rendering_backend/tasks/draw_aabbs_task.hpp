@@ -42,6 +42,10 @@ inline void task_draw_AABB(RendererContext & context)
             {
                 context.main_task_list.buffers.t_cube_indices,
                 daxa::TaskBufferAccess::SHADER_READ_ONLY,
+            },
+            {
+                context.main_task_list.buffers.t_transform_data,
+                daxa::TaskBufferAccess::SHADER_READ_ONLY,
             }
         },
         .used_images =
@@ -58,6 +62,7 @@ inline void task_draw_AABB(RendererContext & context)
             auto dimensions = context.swapchain.get_surface_extent();
             auto swapchain_image = runtime.get_images(context.main_task_list.images.t_swapchain_image);
             auto index_buffer = runtime.get_buffers(context.main_task_list.buffers.t_cube_indices);
+            auto transforms_buffer = runtime.get_buffers(context.main_task_list.buffers.t_transform_data);
             cmd_list.begin_renderpass({
                 .color_attachments = 
                 {{
@@ -69,9 +74,11 @@ inline void task_draw_AABB(RendererContext & context)
                 .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}
             });
 
+            auto m_model = glm::mat4x4(1.0f);
             cmd_list.set_pipeline(context.pipelines.p_draw_AABB);
             cmd_list.push_constant(AABBDrawPC{
-                .transforms = context.device.get_device_address(context.buffers.transforms_buffer.gpu_buffer)
+                .transforms = context.device.get_device_address(transforms_buffer[0]),
+                .m_model = *reinterpret_cast<daxa::f32mat4x4 *>(&m_model)
             });
             cmd_list.set_index_buffer(index_buffer[0], 0, sizeof(u32));
             cmd_list.draw_indexed({.index_count = INDEX_COUNT});

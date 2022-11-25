@@ -30,6 +30,7 @@ struct RendererContext
         struct TaskListBuffers
         {
             daxa::TaskBufferId t_cube_indices;
+            daxa::TaskBufferId t_transform_data;
         };
 
         daxa::TaskList task_list;

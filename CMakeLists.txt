@@ -6,6 +6,7 @@ add_executable(${PROJECT_NAME}
     "source/main.cpp"
     "source/application.cpp"
     "source/rendering_backend/renderer.cpp"
+    "source/rendering_backend/camera.cpp"
 )
 
 find_package(assimp CONFIG REQUIRED)
