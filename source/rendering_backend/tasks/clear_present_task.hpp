@@ -26,6 +26,9 @@ inline static const daxa::RasterPipelineInfo DRAW_AABB_TASK_RASTER_PIPE_INFO
             .format = daxa::Format::B8G8R8A8_SRGB,
         },
     },
+    .raster = {
+        .polygon_mode = daxa::PolygonMode::LINE
+    },
     .push_constant_size = sizeof(AABBDrawPC),
 };
 
@@ -50,7 +53,7 @@ inline void task_draw_AABB(RendererContext & context)
                 {{
                     .image_view = swapchain_image[0].default_view(),
                     .load_op = daxa::AttachmentLoadOp::CLEAR,
-                    .clear_value = std::array<f32, 4>{1.0, 1.0, 0.0, 1.0}
+                    .clear_value = std::array<f32, 4>{0.04, 0.02, 0.09, 1.0}
                 }},
                 .depth_attachment = {},
                 .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}
@@ -60,7 +63,7 @@ inline void task_draw_AABB(RendererContext & context)
             cmd_list.push_constant(AABBDrawPC{
                 .tmp = 35
             });
-            cmd_list.draw({.vertex_count = 6});
+            cmd_list.draw({.vertex_count = 3});
             cmd_list.end_renderpass();
         },
         .debug_name = "display texture",

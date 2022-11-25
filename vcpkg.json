@@ -19,11 +19,11 @@
     "glm",
     "assimp"
   ],
-  "builtin-baseline": "01b29f6d8212bc845da64773b18665d682f5ab66",
+  "builtin-baseline": "4340582bc30f3e539bd4f52e26418f7d62145956",
   "overrides": [
     {
       "name": "daxa",
-      "version-string": "nightly#12"
+      "version-string": "nightly#13"
     },
     {
       "name": "glfw3",

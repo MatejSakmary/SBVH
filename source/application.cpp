@@ -13,6 +13,7 @@ void Application::mouse_button_callback(i32 button, i32 action, i32 mods)
 
 void Application::window_resize_callback(i32 width, i32 height)
 {
+    renderer.resize();
 }
 
 void Application::key_callback(i32 key, i32 code, i32 action, i32 mods)

@@ -51,6 +51,7 @@ void Renderer::create_clear_present_task()
 
 void Renderer::resize()
 {
+    context.swapchain.resize();
 }
 
 void Renderer::draw()
