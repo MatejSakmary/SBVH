@@ -27,6 +27,8 @@ inline static const daxa::RasterPipelineInfo DRAW_AABB_TASK_RASTER_PIPE_INFO
         },
     },
     .raster = {
+        .primitive_topology = daxa::PrimitiveTopology::LINE_STRIP,
+        .primitive_restart_enable = true,
         .polygon_mode = daxa::PolygonMode::LINE
     },
     .push_constant_size = sizeof(AABBDrawPC),
@@ -35,6 +37,13 @@ inline static const daxa::RasterPipelineInfo DRAW_AABB_TASK_RASTER_PIPE_INFO
 inline void task_draw_AABB(RendererContext & context)
 {
     context.main_task_list.task_list.add_task({
+        .used_buffers =
+        {
+            {
+                context.main_task_list.buffers.t_cube_indices,
+                daxa::TaskBufferAccess::SHADER_READ_ONLY,
+            }
+        },
         .used_images =
         {
             { 
@@ -48,12 +57,13 @@ inline void task_draw_AABB(RendererContext & context)
             auto cmd_list = runtime.get_command_list();
             auto dimensions = context.swapchain.get_surface_extent();
             auto swapchain_image = runtime.get_images(context.main_task_list.images.t_swapchain_image);
+            auto index_buffer = runtime.get_buffers(context.main_task_list.buffers.t_cube_indices);
             cmd_list.begin_renderpass({
                 .color_attachments = 
                 {{
                     .image_view = swapchain_image[0].default_view(),
                     .load_op = daxa::AttachmentLoadOp::CLEAR,
-                    .clear_value = std::array<f32, 4>{0.04, 0.02, 0.09, 1.0}
+                    .clear_value = std::array<f32, 4>{0.02, 0.02, 0.02, 1.0}
                 }},
                 .depth_attachment = {},
                 .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}
@@ -61,11 +71,12 @@ inline void task_draw_AABB(RendererContext & context)
 
             cmd_list.set_pipeline(context.pipelines.p_draw_AABB);
             cmd_list.push_constant(AABBDrawPC{
-                .tmp = 35
+                .transforms = context.device.get_device_address(context.buffers.transforms_buffer.gpu_buffer)
             });
-            cmd_list.draw({.vertex_count = 3});
+            cmd_list.set_index_buffer(index_buffer[0], 0, sizeof(u32));
+            cmd_list.draw_indexed({.index_count = INDEX_COUNT});
             cmd_list.end_renderpass();
         },
-        .debug_name = "display texture",
+        .debug_name = "draw AABB",
     });
 }

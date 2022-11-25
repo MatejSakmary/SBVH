@@ -3,8 +3,23 @@
 #include <daxa/daxa.hpp>
 #include <daxa/utils/task_list.hpp>
 
+#include "shared/draw_aabb_shared.inl"
+
 struct RendererContext
 {
+    struct Buffers
+    {
+        template<typename T>
+        struct SharedBuffer
+        {
+            T cpu_buffer;
+            daxa::BufferId gpu_buffer;
+        };
+
+        SharedBuffer<TransformData> transforms_buffer;
+        SharedBuffer<IndexBuffer> index_buffer;
+    };
+
     struct MainTaskList
     {
         struct TaskListImages
@@ -12,8 +27,14 @@ struct RendererContext
             daxa::TaskImageId t_swapchain_image;
         };
 
+        struct TaskListBuffers
+        {
+            daxa::TaskBufferId t_cube_indices;
+        };
+
         daxa::TaskList task_list;
         TaskListImages images;
+        TaskListBuffers buffers;
     };
 
     struct Pipelines
@@ -28,6 +49,7 @@ struct RendererContext
 
     daxa::ImageId swapchain_image;
 
+    Buffers buffers;
     MainTaskList main_task_list;
     Pipelines pipelines;
 };

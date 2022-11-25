@@ -5,7 +5,8 @@
 
 #include "../utils.hpp"
 #include "renderer_context.hpp"
-#include "tasks/clear_present_task.hpp"
+#include "tasks/draw_aabbs_task.hpp"
+#include "tasks/fill_index_buffer_task.hpp"
 
 
 struct Renderer
@@ -18,5 +19,5 @@ struct Renderer
 
     private:
         RendererContext context;
-        void create_clear_present_task();
+        void create_main_task();
 };

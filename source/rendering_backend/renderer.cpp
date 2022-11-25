@@ -21,10 +21,26 @@ Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
     });
 
     context.pipelines.p_draw_AABB = context.pipeline_compiler.create_raster_pipeline(DRAW_AABB_TASK_RASTER_PIPE_INFO).value();
-    create_clear_present_task();
+
+    context.buffers.transforms_buffer.gpu_buffer = context.device.create_buffer({
+        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
+        .size = sizeof(TransformData),
+        .debug_name = "transform info"
+    });
+
+    context.buffers.index_buffer.gpu_buffer = context.device.create_buffer({
+        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
+        .size = sizeof(IndexBuffer),
+        .debug_name = "cube_indices"
+    });
+
+    context.buffers.index_buffer.cpu_buffer = {
+        0, 1, 2, 3, 4, 5, 0, 3, 0xFFFFFFFF,
+        6, 5, 4, 7, 2, 1, 6, 7, 0xFFFFFFFF};
+    create_main_task();
 }
 
-void Renderer::create_clear_present_task()
+void Renderer::create_main_task()
 {
     context.main_task_list.task_list = daxa::TaskList({
         .device = context.device,
@@ -41,8 +57,22 @@ void Renderer::create_clear_present_task()
             .initial_layout = daxa::ImageLayout::UNDEFINED,
             .swapchain_image = true,
             .debug_name = "t_swapchain_image"
-        });
+        }
+    );
 
+    context.main_task_list.buffers.t_cube_indices = 
+        context.main_task_list.task_list.create_task_buffer(
+        {
+            .initial_access = daxa::AccessConsts::NONE,
+            .debug_name = "t_cube_indices"
+        }
+    );
+
+    context.main_task_list.task_list.add_runtime_buffer(
+        context.main_task_list.buffers.t_cube_indices,
+        context.buffers.index_buffer.gpu_buffer);
+
+    task_fill_index_buffer(context);
     task_draw_AABB(context);
     context.main_task_list.task_list.submit({});
     context.main_task_list.task_list.present({});
@@ -107,5 +137,7 @@ void Renderer::draw()
 Renderer::~Renderer()
 {
     context.device.wait_idle();
+    context.device.destroy_buffer(context.buffers.index_buffer.gpu_buffer);
+    context.device.destroy_buffer(context.buffers.transforms_buffer.gpu_buffer);
     context.device.collect_garbage();
 }
