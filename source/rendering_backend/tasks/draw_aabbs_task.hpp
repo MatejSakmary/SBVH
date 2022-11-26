@@ -86,7 +86,10 @@ inline void task_draw_AABB(RendererContext & context)
                 .aabb_transforms = context.device.get_device_address(aabbs_buffer[0]),
             });
             cmd_list.set_index_buffer(index_buffer[0], 0, sizeof(u32));
-            cmd_list.draw_indexed({.index_count = INDEX_COUNT, .instance_count = 4});
+            cmd_list.draw_indexed({
+                .index_count = INDEX_COUNT,
+                .instance_count = static_cast<u32>(context.buffers.aabb_info_buffer.cpu_buffer.size())
+            });
             cmd_list.end_renderpass();
         },
         .debug_name = "draw AABB",

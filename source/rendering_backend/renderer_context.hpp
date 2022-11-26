@@ -46,6 +46,13 @@ struct RendererContext
         daxa::RasterPipeline p_draw_AABB;
     };
 
+    struct Conditionals
+    {
+        b32 fill_indices = true;
+        b32 fill_transforms = true;
+        b32 fill_aabbs = true;
+    };
+
     daxa::Context vulkan_context;
     daxa::Device device;
     daxa::Swapchain swapchain;
@@ -56,4 +63,6 @@ struct RendererContext
     Buffers buffers;
     MainTaskList main_task_list;
     Pipelines pipelines;
+
+    Conditionals conditionals;
 };

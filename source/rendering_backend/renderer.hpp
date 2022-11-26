@@ -9,7 +9,6 @@
 #include "tasks/draw_aabbs_task.hpp"
 #include "tasks/fill_index_buffer_task.hpp"
 
-
 struct Renderer
 {
     Camera camera;

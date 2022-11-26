@@ -30,13 +30,19 @@ Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
     });
 
     // ================  TODO(msakmary) move this where it belongs later ========================
-    context.buffers.aabb_info_buffer.cpu_buffer.reserve(5);
-    for(size_t i = 0; i < 5; i++)
+    context.buffers.aabb_info_buffer.cpu_buffer.reserve(100 * 100 * 100);
+    for(size_t x = 0; x < 100; x++)
     {
-        context.buffers.aabb_info_buffer.cpu_buffer.emplace_back(AABBGeometryInfo {
-            .position = {f32(i) * 2.0f, 0.0f, 0.0f},
-            .scale = {1.0f, f32(i + 1), 1.0f}
-        });
+        for(size_t y = 0; y < 100; y++)
+        {
+            for(size_t z = 0; z < 100; z++)
+            {
+                context.buffers.aabb_info_buffer.cpu_buffer.emplace_back(AABBGeometryInfo {
+                    .position = {f32(x) * 2.0f, f32(y) * 2.0f, f32(z) * 2.0f},
+                    .scale = {1.0f - f32(x) * 0.01f, 1.0f - f32(y) * 0.01f, 1.0f - f32(z) * 0.01f}
+                });
+            }
+        }
     }
     context.buffers.aabb_info_buffer.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
@@ -158,7 +164,7 @@ void Renderer::draw()
 
     // ==============  TODO(msakmary) move this somewhere where it belongs ==================
     f32 aspect = f32(context.swapchain.get_surface_extent().x) / f32(context.swapchain.get_surface_extent().y);
-    f32mat4x4 m_proj = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 100.0f);
+    f32mat4x4 m_proj = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 500.0f);
     /* GLM is using OpenGL standard where Y coordinate of the clip coordinates is inverted */
     m_proj[1][1] *= -1;
     f32mat4x4 m_proj_view = m_proj * camera.get_view_matrix();
@@ -167,6 +173,8 @@ void Renderer::draw()
         .m_proj_view = *reinterpret_cast<daxa::f32mat4x4 *>(&m_proj_view)
     };
     // ======================================================================================
+
+    context.conditionals.fill_transforms = true;
 
     context.main_task_list.task_list.remove_runtime_image(
         context.main_task_list.images.t_swapchain_image,
