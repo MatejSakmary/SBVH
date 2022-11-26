@@ -20,6 +20,10 @@ inline void task_fill_buffers(RendererContext & context)
             {
                 context.main_task_list.buffers.t_transform_data,
                 daxa::TaskBufferAccess::HOST_TRANSFER_WRITE,
+            },
+            {
+                context.main_task_list.buffers.t_aabb_infos,
+                daxa::TaskBufferAccess::HOST_TRANSFER_WRITE,
             }
         },
         .task = [&](daxa::TaskRuntime const & runtime)
@@ -27,6 +31,7 @@ inline void task_fill_buffers(RendererContext & context)
             auto cmd_list = runtime.get_command_list();
             auto index_buffer = runtime.get_buffers(context.main_task_list.buffers.t_cube_indices);
             auto transform_buffer = runtime.get_buffers(context.main_task_list.buffers.t_transform_data);
+            auto aabbs_buffer = runtime.get_buffers(context.main_task_list.buffers.t_aabb_infos);
 
             auto indices_staging_buffer = context.device.create_buffer({
                 .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
@@ -40,12 +45,22 @@ inline void task_fill_buffers(RendererContext & context)
                 .debug_name = "staging_transforms_buffer"
             });
 
+            auto aabbs_staging_buffer = context.device.create_buffer({
+                .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
+                .size = static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()),
+                .debug_name = "staging_aabbs_buffer"
+            });
+
             // copy data into staging buffer
             auto index_buffer_ptr = context.device.get_host_address_as<IndexBuffer>(indices_staging_buffer);
             memcpy(index_buffer_ptr, &context.buffers.index_buffer.cpu_buffer, sizeof(IndexBuffer));
 
             auto transform_buffer_ptr = context.device.get_host_address_as<TransformData>(transforms_staging_buffer);
             memcpy(transform_buffer_ptr, &context.buffers.transforms_buffer.cpu_buffer, sizeof(TransformData));
+
+            auto aabbs_buffer_ptr = context.device.get_host_address_as<AABBGeometryInfo>(aabbs_staging_buffer);
+            memcpy(aabbs_buffer_ptr, context.buffers.aabb_info_buffer.cpu_buffer.data(), 
+                   static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()));
 
             // copy staging buffer into gpu_buffer
             cmd_list.copy_buffer_to_buffer({
@@ -60,9 +75,16 @@ inline void task_fill_buffers(RendererContext & context)
                 .size = sizeof(TransformData),
             });
 
+            cmd_list.copy_buffer_to_buffer({
+                .src_buffer = aabbs_staging_buffer,
+                .dst_buffer = context.buffers.aabb_info_buffer.gpu_buffer,
+                .size = static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()),
+            });
+
             // destroy the stagin buffer after the copy is done
             cmd_list.destroy_buffer_deferred(indices_staging_buffer);
             cmd_list.destroy_buffer_deferred(transforms_staging_buffer);
+            cmd_list.destroy_buffer_deferred(aabbs_staging_buffer);
         },
         .debug_name = "upload buffer data",
     });

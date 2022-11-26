@@ -46,6 +46,10 @@ inline void task_draw_AABB(RendererContext & context)
             {
                 context.main_task_list.buffers.t_transform_data,
                 daxa::TaskBufferAccess::SHADER_READ_ONLY,
+            },
+            {
+                context.main_task_list.buffers.t_aabb_infos,
+                daxa::TaskBufferAccess::SHADER_READ_ONLY,
             }
         },
         .used_images =
@@ -63,6 +67,7 @@ inline void task_draw_AABB(RendererContext & context)
             auto swapchain_image = runtime.get_images(context.main_task_list.images.t_swapchain_image);
             auto index_buffer = runtime.get_buffers(context.main_task_list.buffers.t_cube_indices);
             auto transforms_buffer = runtime.get_buffers(context.main_task_list.buffers.t_transform_data);
+            auto aabbs_buffer = runtime.get_buffers(context.main_task_list.buffers.t_aabb_infos);
             cmd_list.begin_renderpass({
                 .color_attachments = 
                 {{
@@ -78,10 +83,10 @@ inline void task_draw_AABB(RendererContext & context)
             cmd_list.set_pipeline(context.pipelines.p_draw_AABB);
             cmd_list.push_constant(AABBDrawPC{
                 .transforms = context.device.get_device_address(transforms_buffer[0]),
-                .m_model = *reinterpret_cast<daxa::f32mat4x4 *>(&m_model)
+                .aabb_transforms = context.device.get_device_address(aabbs_buffer[0]),
             });
             cmd_list.set_index_buffer(index_buffer[0], 0, sizeof(u32));
-            cmd_list.draw_indexed({.index_count = INDEX_COUNT});
+            cmd_list.draw_indexed({.index_count = INDEX_COUNT, .instance_count = 4});
             cmd_list.end_renderpass();
         },
         .debug_name = "draw AABB",

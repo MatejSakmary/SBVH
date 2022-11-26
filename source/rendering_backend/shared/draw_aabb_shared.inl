@@ -11,6 +11,13 @@ DAXA_DECL_BUFFER_STRUCT(
     }
 )
 
+DAXA_DECL_BUFFER_STRUCT(
+    AABBGeometryInfo,
+    {
+        daxa_f32vec3 position;
+        daxa_f32vec3 scale;
+    }
+)
 
 DAXA_DECL_BUFFER_STRUCT(
     TransformData,
@@ -22,5 +29,5 @@ DAXA_DECL_BUFFER_STRUCT(
 struct AABBDrawPC
 {
     daxa_RWBuffer(TransformData) transforms;
-    daxa_f32mat4x4 m_model;
+    daxa_RWBuffer(AABBGeometryInfo) aabb_transforms;
 };

@@ -29,6 +29,22 @@ Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
         .debug_name = "transform info"
     });
 
+    // ================  TODO(msakmary) move this where it belongs later ========================
+    context.buffers.aabb_info_buffer.cpu_buffer.reserve(5);
+    for(size_t i = 0; i < 5; i++)
+    {
+        context.buffers.aabb_info_buffer.cpu_buffer.emplace_back(AABBGeometryInfo {
+            .position = {f32(i) * 2.0f, 0.0f, 0.0f},
+            .scale = {1.0f, f32(i + 1), 1.0f}
+        });
+    }
+    context.buffers.aabb_info_buffer.gpu_buffer = context.device.create_buffer({
+        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
+        .size = static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()),
+        .debug_name = "aabb_infos"
+    });
+    // ==========================================================================================
+
     context.buffers.index_buffer.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
         .size = sizeof(IndexBuffer),
@@ -63,6 +79,18 @@ void Renderer::create_main_task()
         }
     );
 
+    context.main_task_list.buffers.t_aabb_infos = 
+        context.main_task_list.task_list.create_task_buffer(
+        {
+            .initial_access = daxa::AccessConsts::NONE,
+            .debug_name = "t_aabb_infos"
+        }
+    );
+    context.main_task_list.task_list.add_runtime_buffer(
+        context.main_task_list.buffers.t_aabb_infos,
+        context.buffers.aabb_info_buffer.gpu_buffer);
+
+
     context.main_task_list.buffers.t_transform_data = 
         context.main_task_list.task_list.create_task_buffer(
         {
@@ -81,7 +109,6 @@ void Renderer::create_main_task()
             .debug_name = "t_cube_indices"
         }
     );
-
     context.main_task_list.task_list.add_runtime_buffer(
         context.main_task_list.buffers.t_cube_indices,
         context.buffers.index_buffer.gpu_buffer);
@@ -165,5 +192,6 @@ Renderer::~Renderer()
     context.device.wait_idle();
     context.device.destroy_buffer(context.buffers.index_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.transforms_buffer.gpu_buffer);
+    context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
     context.device.collect_garbage();
 }

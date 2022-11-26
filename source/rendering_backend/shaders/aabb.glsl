@@ -2,7 +2,8 @@
 #include <shared/draw_aabb_shared.inl>
 
 DAXA_USE_PUSH_CONSTANT(AABBDrawPC)
-RWBuffer(TransformData) transforms = daxa_push_constant.transforms;
+RWBuffer(TransformData) camera_transforms = daxa_push_constant.transforms;
+RWBuffer(AABBGeometryInfo) aabb_transforms = daxa_push_constant.aabb_transforms;
 
 #if defined(_VERTEX)
 // ===================== VERTEX SHADER ===============================
@@ -20,8 +21,16 @@ f32vec3 vertices[8] = f32vec3[](
 
 void main()
 {
-    vec4 pre_trans_pos = vec4(vertices[gl_VertexIndex], 1.0);
-    mat4 m_proj_view_model = transforms.m_proj_view * daxa_push_constant.m_model;
+    f32vec4 pre_trans_pos = f32vec4(vertices[gl_VertexIndex], 1.0);
+    f32vec3 pos = aabb_transforms[gl_InstanceIndex].position;
+    f32vec3 scale = aabb_transforms[gl_InstanceIndex].scale;
+    f32mat4x4 m_model = f32mat4x4(
+        f32vec4( scale.x,  0.0,     0.0,    0.0), // first column
+        f32vec4(   0.0,   scale.y,  0.0,    0.0), // second column
+        f32vec4(   0.0,     0.0,   scale.z, 0.0), // third column
+        f32vec4(  pos.x,   pos.y,   pos.z,  1.0)  // fourth column
+    );
+    mat4 m_proj_view_model = camera_transforms.m_proj_view * m_model;
     gl_Position = m_proj_view_model * pre_trans_pos;
 }
 

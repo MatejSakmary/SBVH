@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <daxa/daxa.hpp>
 #include <daxa/utils/task_list.hpp>
 
@@ -18,6 +19,7 @@ struct RendererContext
 
         SharedBuffer<TransformData> transforms_buffer;
         SharedBuffer<IndexBuffer> index_buffer;
+        SharedBuffer<std::vector<AABBGeometryInfo>> aabb_info_buffer;
     };
 
     struct MainTaskList
@@ -31,6 +33,7 @@ struct RendererContext
         {
             daxa::TaskBufferId t_cube_indices;
             daxa::TaskBufferId t_transform_data;
+            daxa::TaskBufferId t_aabb_infos;
         };
 
         daxa::TaskList task_list;
