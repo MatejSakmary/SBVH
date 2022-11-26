@@ -138,7 +138,7 @@ void Renderer::draw()
         if (context.pipeline_compiler.check_if_sources_changed(pipeline))
         {
             auto new_pipeline = context.pipeline_compiler.recreate_raster_pipeline(pipeline);
-            std::cout << new_pipeline.to_string() << std::endl;
+            DEBUG_OUT(new_pipeline.to_string());
             if (new_pipeline.is_ok())
             {
                 pipeline = new_pipeline.value();
@@ -152,7 +152,7 @@ void Renderer::draw()
         if (context.pipeline_compiler.check_if_sources_changed(pipeline))
         {
             auto new_pipeline = context.pipeline_compiler.recreate_compute_pipeline(pipeline);
-            std::cout << new_pipeline.to_string() << std::endl;
+            DEBUG_OUT(new_pipeline.to_string());
             if (new_pipeline.is_ok())
             {
                 pipeline = new_pipeline.value();

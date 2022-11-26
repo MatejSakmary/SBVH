@@ -103,7 +103,7 @@ inline void task_fill_buffers(RendererContext & context)
                 });
 
                 cmd_list.destroy_buffer_deferred(aabbs_staging_buffer);
-                context.conditionals.fill_transforms = false;
+                context.conditionals.fill_aabbs = false;
             }
             #pragma endregion aabbs
 
