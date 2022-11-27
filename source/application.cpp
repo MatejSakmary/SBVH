@@ -50,6 +50,8 @@ void Application::key_callback(i32 key, i32 code, i32 action, i32 mods)
             case GLFW_KEY_A: state.key_table.bits.A = update_state(action); return;
             case GLFW_KEY_S: state.key_table.bits.S = update_state(action); return;
             case GLFW_KEY_D: state.key_table.bits.D = update_state(action); return;
+            case GLFW_KEY_Q: state.key_table.bits.Q = update_state(action); return;
+            case GLFW_KEY_E: state.key_table.bits.E = update_state(action); return;
             case GLFW_KEY_LEFT_CONTROL: state.key_table.bits.CTRL = update_state(action); return;
             case GLFW_KEY_SPACE: state.key_table.bits.SPACE = update_state(action); return;
             default: break;
@@ -95,7 +97,8 @@ Application::Application() :
         }
     ),
     state{ .minimized = false },
-    renderer{window.get_native_handle()}
+    renderer{window.get_native_handle()},
+    scene{"resources/scenes/plane/plane.obj"}
 {
 }
 
@@ -115,6 +118,8 @@ void Application::update_app_state()
         if(state.key_table.bits.A) renderer.camera.move_camera(state.delta_time, Direction::LEFT);
         if(state.key_table.bits.S) renderer.camera.move_camera(state.delta_time, Direction::BACK);
         if(state.key_table.bits.D) renderer.camera.move_camera(state.delta_time, Direction::RIGHT);
+        if(state.key_table.bits.Q) renderer.camera.move_camera(state.delta_time, Direction::ROLL_LEFT);
+        if(state.key_table.bits.E) renderer.camera.move_camera(state.delta_time, Direction::ROLL_RIGHT);
         if(state.key_table.bits.CTRL) renderer.camera.move_camera(state.delta_time, Direction::DOWN);
         if(state.key_table.bits.SPACE) renderer.camera.move_camera(state.delta_time, Direction::UP);
     }

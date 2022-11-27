@@ -23,6 +23,7 @@ struct Camera
         f32vec3 up;
         f32 pitch;
         f32 yaw;
+        f32 roll;
         f32 speed;
         f32 sensitivity;
 };

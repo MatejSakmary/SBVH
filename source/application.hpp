@@ -3,6 +3,7 @@
 #include "window.hpp"
 #include "types.hpp"
 #include "rendering_backend/renderer.hpp"
+#include "raytracing_backend/scene.hpp"
 
 struct Application 
 {
@@ -17,6 +18,8 @@ struct Application
                 unsigned int A : 1 = 0;
                 unsigned int S : 1 = 0;
                 unsigned int D : 1 = 0;
+                unsigned int Q : 1 = 0;
+                unsigned int E : 1 = 0;
                 unsigned int CTRL : 1 = 0;
                 unsigned int SPACE : 1 = 0;
             } bits;
@@ -44,6 +47,8 @@ struct Application
         AppWindow window;
         AppState state;
         Renderer renderer;
+        Scene scene;
+
 
         void init_window();
         void mouse_callback(f64 x, f64 y);

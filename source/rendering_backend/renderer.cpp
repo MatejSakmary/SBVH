@@ -30,12 +30,12 @@ Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
     });
 
     // ================  TODO(msakmary) move this where it belongs later ========================
-    context.buffers.aabb_info_buffer.cpu_buffer.reserve(100 * 100 * 100);
-    for(size_t x = 0; x < 100; x++)
+    context.buffers.aabb_info_buffer.cpu_buffer.reserve(10 * 10 * 10);
+    for(size_t x = 0; x < 10; x++)
     {
-        for(size_t y = 0; y < 100; y++)
+        for(size_t y = 0; y < 10; y++)
         {
-            for(size_t z = 0; z < 100; z++)
+            for(size_t z = 0; z < 10; z++)
             {
                 context.buffers.aabb_info_buffer.cpu_buffer.emplace_back(AABBGeometryInfo {
                     .position = {f32(x) * 2.0f, f32(y) * 2.0f, f32(z) * 2.0f},
@@ -167,6 +167,7 @@ void Renderer::draw()
     f32mat4x4 m_proj = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 500.0f);
     /* GLM is using OpenGL standard where Y coordinate of the clip coordinates is inverted */
     m_proj[1][1] *= -1;
+    auto m_view = camera.get_view_matrix();
     f32mat4x4 m_proj_view = m_proj * camera.get_view_matrix();
     context.buffers.transforms_buffer.cpu_buffer =
     {

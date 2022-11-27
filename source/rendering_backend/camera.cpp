@@ -23,10 +23,16 @@ void Camera::move_camera(f32 delta_time, Direction direction)
         position += glm::normalize(glm::cross(front, up)) * speed * delta_time;
         break;
     case Direction::UP:
-        position += up * speed * delta_time;
+        position += glm::normalize(glm::cross(glm::cross(front,up), front)) * speed * delta_time;
         break;
     case Direction::DOWN:
-        position -= up * speed * delta_time;
+        position -= glm::normalize(glm::cross(glm::cross(front,up), front)) * speed * delta_time;
+        break;
+    case Direction::ROLL_LEFT:
+        up = glm::rotate(up, glm::radians(-20.0f * delta_time), front);
+        break;
+    case Direction::ROLL_RIGHT:
+        up = glm::rotate(up, glm::radians(20.0f * delta_time), front);
         break;
     
     default:
@@ -37,20 +43,20 @@ void Camera::move_camera(f32 delta_time, Direction direction)
 
 void Camera::update_front_vector(f32 x_offset, f32 y_offset)
 {
-    yaw += sensitivity * x_offset;
-    pitch += sensitivity * y_offset;
-	// make sure the camera is not flipping
-	if (pitch > 89.0f) pitch = 89.0f;
-	if (pitch < -89.0f) pitch = -89.0f;
+
+    f32vec3 front_ = glm::rotate(front, glm::radians(-sensitivity * x_offset), up);
+    front_ = glm::rotate(front_, glm::radians(-sensitivity * y_offset), glm::cross(front,up));
+
+    pitch = glm::degrees(glm::angle(front_, up));
+    if (pitch < 1.0f || pitch > 179.0f ) 
+    {
+        return;
+    }
+
+    front = front_;
 }
 
 f32mat4x4 Camera::get_view_matrix()
 {
-    f32vec3 front_;
-    front_.x = glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
-    front_.y = -glm::sin(glm::radians(pitch));
-    front_.z = glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
-
-    front = glm::normalize(front_);
     return glm::lookAt(position, position + front, up);
 }

@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 #include "utils.hpp"
 
@@ -48,6 +50,8 @@ enum Direction
     RIGHT,
     UP,
     DOWN,
+    ROLL_LEFT,
+    ROLL_RIGHT,
     UNKNOWN
 };
 
