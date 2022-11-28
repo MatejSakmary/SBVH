@@ -60,6 +60,23 @@ struct RendererContext
         b32 fill_scene_geometry = false;
     };
 
+    // TODO(msakmary) perhaps reconsider moving this to Scene?
+    struct SceneRenderInfo
+    {
+        struct RenderMeshInfo
+        {
+            u32 index_offset;
+            u32 index_count;
+        };
+        struct RenderObjectInfo
+        {
+            f32mat4x4 model_transform;
+            std::vector<RenderMeshInfo> meshes;
+        };
+
+        std::vector<RenderObjectInfo> objects;
+    };
+
     daxa::Context vulkan_context;
     daxa::Device device;
     daxa::Swapchain swapchain;
@@ -72,4 +89,5 @@ struct RendererContext
     Pipelines pipelines;
 
     Conditionals conditionals;
+    SceneRenderInfo render_info;
 };

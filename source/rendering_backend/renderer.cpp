@@ -237,8 +237,20 @@ void Renderer::reload_scene_data(const Scene & scene)
     // pack scene vertices and scene indices into their separate GPU buffers
     for(auto scene_runtime_object : scene.runtime_scene_objects)
     {
+        context.render_info.objects.push_back({
+            .model_transform = scene_runtime_object.transform,
+        });
+        auto & object = context.render_info.objects.back();
+
         for(auto scene_runtime_mesh : scene_runtime_object.meshes)
         {
+            
+            object.meshes.push_back({
+                .index_offset = static_cast<u32>(scene_index_cnt),
+                .index_count = static_cast<u32>(scene_runtime_mesh.indices.size()),
+            });
+            auto & mesh = object.meshes.back();
+
             context.buffers.scene_vertices.cpu_buffer.resize(scene_vertex_cnt + scene_runtime_mesh.vertices.size());
             memcpy(context.buffers.scene_vertices.cpu_buffer.data() + scene_vertex_cnt,
                    scene_runtime_mesh.vertices.data(),
