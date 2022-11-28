@@ -22,6 +22,7 @@ Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
     });
 
     context.pipelines.p_draw_AABB = context.pipeline_compiler.create_raster_pipeline(DRAW_AABB_TASK_RASTER_PIPE_INFO).value();
+    // context.pipelines.p_draw_scene = context.pipeline_compiler.create_raster_pipeline().value();
 
     context.buffers.transforms_buffer.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
@@ -119,6 +120,22 @@ void Renderer::create_main_task()
         context.main_task_list.buffers.t_cube_indices,
         context.buffers.index_buffer.gpu_buffer);
 
+    context.main_task_list.buffers.t_scene_vertices = 
+        context.main_task_list.task_list.create_task_buffer(
+        {
+            .initial_access = daxa::AccessConsts::NONE,
+            .debug_name = "t_scene_vertices"
+        }
+    );
+    
+    context.main_task_list.buffers.t_scene_indices = 
+        context.main_task_list.task_list.create_task_buffer(
+        {
+            .initial_access = daxa::AccessConsts::NONE,
+            .debug_name = "t_scene_indices"
+        }
+    );
+
     task_fill_buffers(context);
     task_draw_AABB(context);
     context.main_task_list.task_list.submit({});
@@ -196,11 +213,77 @@ void Renderer::draw()
     reload_raster_pipeline(context.pipelines.p_draw_AABB);
 }
 
+void Renderer::reload_scene_data(const Scene & scene)
+{
+    if(!context.buffers.scene_vertices.gpu_buffer.is_empty())
+    {
+        context.main_task_list.task_list.remove_runtime_buffer(
+            context.main_task_list.buffers.t_scene_vertices,
+            context.buffers.scene_vertices.gpu_buffer);
+
+        context.device.destroy_buffer(context.buffers.scene_vertices.gpu_buffer);
+    }
+    if(!context.buffers.scene_indices.gpu_buffer.is_empty())
+    {
+        context.main_task_list.task_list.remove_runtime_buffer(
+            context.main_task_list.buffers.t_scene_indices,
+            context.buffers.scene_indices.gpu_buffer);
+
+        context.device.destroy_buffer(context.buffers.scene_indices.gpu_buffer);
+    }
+    
+    size_t scene_vertex_cnt = 0;
+    size_t scene_index_cnt = 0;
+    // pack scene vertices and scene indices into their separate GPU buffers
+    for(auto scene_runtime_object : scene.runtime_scene_objects)
+    {
+        for(auto scene_runtime_mesh : scene_runtime_object.meshes)
+        {
+            context.buffers.scene_vertices.cpu_buffer.resize(scene_vertex_cnt + scene_runtime_mesh.vertices.size());
+            memcpy(context.buffers.scene_vertices.cpu_buffer.data() + scene_vertex_cnt,
+                   scene_runtime_mesh.vertices.data(),
+                   sizeof(SceneGeometryVertices) * scene_runtime_mesh.vertices.size());
+            scene_vertex_cnt += scene_runtime_mesh.vertices.size();
+
+            context.buffers.scene_indices.cpu_buffer.resize(scene_index_cnt + scene_runtime_mesh.indices.size());
+            memcpy(context.buffers.scene_indices.cpu_buffer.data() + scene_index_cnt,
+                   scene_runtime_mesh.indices.data(),
+                   sizeof(u32) * scene_runtime_mesh.indices.size());
+            scene_index_cnt += scene_runtime_mesh.indices.size();
+        }
+    }
+
+    context.buffers.scene_vertices.gpu_buffer = context.device.create_buffer({
+        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
+        .size = static_cast<u32>(scene_vertex_cnt * sizeof(SceneGeometryVertices)),
+        .debug_name = "scene_geometry_vertices"
+    });
+
+    context.main_task_list.task_list.add_runtime_buffer(
+        context.main_task_list.buffers.t_scene_vertices,
+        context.buffers.scene_vertices.gpu_buffer);
+
+    context.buffers.scene_indices.gpu_buffer = context.device.create_buffer({
+        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
+        .size = static_cast<u32>(scene_index_cnt * sizeof(SceneGeometryIndices)),
+        .debug_name = "scene_geometry_indices"
+    });
+
+    context.main_task_list.task_list.add_runtime_buffer(
+        context.main_task_list.buffers.t_scene_indices,
+        context.buffers.scene_indices.gpu_buffer);
+
+    context.conditionals.fill_scene_geometry = true;
+    DEBUG_OUT("[Renderer::reload_scene_data()] scene reload successfull");
+}
+
 Renderer::~Renderer()
 {
     context.device.wait_idle();
     context.device.destroy_buffer(context.buffers.index_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.transforms_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
+    context.device.destroy_buffer(context.buffers.scene_vertices.gpu_buffer);
+    context.device.destroy_buffer(context.buffers.scene_indices.gpu_buffer);
     context.device.collect_garbage();
 }

@@ -6,6 +6,8 @@
 #include "../utils.hpp"
 #include "camera.hpp"
 #include "renderer_context.hpp"
+// TODO(msakmary) rework the header structure
+#include "../raytracing_backend/scene.hpp"
 #include "tasks/draw_aabbs_task.hpp"
 #include "tasks/fill_index_buffer_task.hpp"
 
@@ -18,6 +20,7 @@ struct Renderer
 
     void resize();
     void draw();
+    void reload_scene_data(const Scene & scene);
 
     private:
         RendererContext context;

@@ -20,6 +20,8 @@ struct RendererContext
         SharedBuffer<TransformData> transforms_buffer;
         SharedBuffer<IndexBuffer> index_buffer;
         SharedBuffer<std::vector<AABBGeometryInfo>> aabb_info_buffer;
+        SharedBuffer<std::vector<SceneGeometryVertices>> scene_vertices;
+        SharedBuffer<std::vector<SceneGeometryIndices>> scene_indices;
     };
 
     struct MainTaskList
@@ -34,6 +36,9 @@ struct RendererContext
             daxa::TaskBufferId t_cube_indices;
             daxa::TaskBufferId t_transform_data;
             daxa::TaskBufferId t_aabb_infos;
+
+            daxa::TaskBufferId t_scene_vertices;
+            daxa::TaskBufferId t_scene_indices;
         };
 
         daxa::TaskList task_list;
@@ -44,6 +49,7 @@ struct RendererContext
     struct Pipelines
     {
         daxa::RasterPipeline p_draw_AABB;
+        daxa::RasterPipeline p_draw_scene;
     };
 
     struct Conditionals
@@ -51,6 +57,7 @@ struct RendererContext
         b32 fill_indices = true;
         b32 fill_transforms = true;
         b32 fill_aabbs = true;
+        b32 fill_scene_geometry = false;
     };
 
     daxa::Context vulkan_context;

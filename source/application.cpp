@@ -69,6 +69,11 @@ void Application::key_callback(i32 key, i32 code, i32 action, i32 mods)
             window.set_input_mode(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
+
+    if(key == GLFW_KEY_R && action == GLFW_PRESS)
+    {
+        renderer.reload_scene_data(scene);
+    }
     return;
 }
 
