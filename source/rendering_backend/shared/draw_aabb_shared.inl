@@ -49,8 +49,8 @@ struct AABBDrawPC
 
 struct DrawScenePC
 {
+    daxa_RWBuffer(TransformData) transforms;
     daxa_RWBuffer(SceneGeometryVertices) vertices;
-    daxa_RWBuffer(SceneGeometryIndices) indices;
     daxa_u32 index_offset;
     daxa_f32mat4x4 m_model;
 };

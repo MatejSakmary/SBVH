@@ -72,8 +72,7 @@ inline void task_draw_AABB(RendererContext & context)
                 .color_attachments = 
                 {{
                     .image_view = swapchain_image[0].default_view(),
-                    .load_op = daxa::AttachmentLoadOp::CLEAR,
-                    .clear_value = std::array<f32, 4>{0.02, 0.02, 0.02, 1.0}
+                    .load_op = daxa::AttachmentLoadOp::LOAD,
                 }},
                 .depth_attachment = {},
                 .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}

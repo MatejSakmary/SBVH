@@ -22,7 +22,7 @@ Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
     });
 
     context.pipelines.p_draw_AABB = context.pipeline_compiler.create_raster_pipeline(DRAW_AABB_TASK_RASTER_PIPE_INFO).value();
-    // context.pipelines.p_draw_scene = context.pipeline_compiler.create_raster_pipeline().value();
+    context.pipelines.p_draw_scene = context.pipeline_compiler.create_raster_pipeline(DRAW_SCENE_TASK_RASTER_PIPE_INFO).value();
 
     context.buffers.transforms_buffer.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
@@ -137,6 +137,7 @@ void Renderer::create_main_task()
     );
 
     task_fill_buffers(context);
+    task_draw_scene(context);
     task_draw_AABB(context);
     context.main_task_list.task_list.submit({});
     context.main_task_list.task_list.present({});
@@ -295,7 +296,13 @@ Renderer::~Renderer()
     context.device.destroy_buffer(context.buffers.index_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.transforms_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
-    context.device.destroy_buffer(context.buffers.scene_vertices.gpu_buffer);
-    context.device.destroy_buffer(context.buffers.scene_indices.gpu_buffer);
+    if(!context.buffers.scene_vertices.gpu_buffer.is_empty())
+    {
+        context.device.destroy_buffer(context.buffers.scene_vertices.gpu_buffer);
+    }
+    if(!context.buffers.scene_indices.gpu_buffer.is_empty())
+    {
+        context.device.destroy_buffer(context.buffers.scene_indices.gpu_buffer);
+    }
     context.device.collect_garbage();
 }

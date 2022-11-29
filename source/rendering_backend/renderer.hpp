@@ -9,7 +9,8 @@
 // TODO(msakmary) rework the header structure
 #include "../raytracing_backend/scene.hpp"
 #include "tasks/draw_aabbs_task.hpp"
-#include "tasks/fill_index_buffer_task.hpp"
+#include "tasks/draw_scene_task.hpp"
+#include "tasks/fill_buffers_task.hpp"
 
 struct Renderer
 {
