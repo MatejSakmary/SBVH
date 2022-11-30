@@ -212,6 +212,7 @@ void Renderer::draw()
     }
     context.main_task_list.task_list.execute();
     reload_raster_pipeline(context.pipelines.p_draw_AABB);
+    reload_raster_pipeline(context.pipelines.p_draw_scene);
 }
 
 void Renderer::reload_scene_data(const Scene & scene)
@@ -223,6 +224,7 @@ void Renderer::reload_scene_data(const Scene & scene)
             context.buffers.scene_vertices.gpu_buffer);
 
         context.device.destroy_buffer(context.buffers.scene_vertices.gpu_buffer);
+        context.buffers.scene_vertices.cpu_buffer.clear();
     }
     if(!context.buffers.scene_indices.gpu_buffer.is_empty())
     {
@@ -231,8 +233,9 @@ void Renderer::reload_scene_data(const Scene & scene)
             context.buffers.scene_indices.gpu_buffer);
 
         context.device.destroy_buffer(context.buffers.scene_indices.gpu_buffer);
+        context.buffers.scene_indices.cpu_buffer.clear();
     }
-    
+    context.render_info.objects.clear();
     size_t scene_vertex_cnt = 0;
     size_t scene_index_cnt = 0;
     // pack scene vertices and scene indices into their separate GPU buffers
@@ -247,7 +250,8 @@ void Renderer::reload_scene_data(const Scene & scene)
         {
             
             object.meshes.push_back({
-                .index_offset = static_cast<u32>(scene_index_cnt),
+                .index_buffer_offset = static_cast<u32>(scene_index_cnt),
+                .index_offset = static_cast<u32>(scene_vertex_cnt),
                 .index_count = static_cast<u32>(scene_runtime_mesh.indices.size()),
             });
             auto & mesh = object.meshes.back();

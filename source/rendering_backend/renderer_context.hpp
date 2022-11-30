@@ -65,6 +65,7 @@ struct RendererContext
     {
         struct RenderMeshInfo
         {
+            u32 index_buffer_offset;
             u32 index_offset;
             u32 index_count;
         };

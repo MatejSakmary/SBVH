@@ -103,7 +103,7 @@ Application::Application() :
     ),
     state{ .minimized = false },
     renderer{window.get_native_handle()},
-    scene{"resources/scenes/plane/plane.obj"}
+    scene{"resources/scenes/simple_2/two_planes.obj"}
 {
 }
 
