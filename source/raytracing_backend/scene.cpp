@@ -67,7 +67,7 @@ void Scene::process_scene(const aiScene * scene)
         for(int i = 0; i < node->mNumChildren; i++)
         {
             auto child = node->mChildren[i];
-            auto node_transform = parent_transform * node->mTransformation;
+            auto node_transform = parent_transform * child->mTransformation;
             node_stack.push({child, node_transform});
         }
     }
