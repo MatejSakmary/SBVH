@@ -29,6 +29,14 @@ inline static const daxa::RasterPipelineInfo DRAW_SCENE_TASK_RASTER_PIPE_INFO
             .format = daxa::Format::B8G8R8A8_SRGB,
         },
     },
+    .depth_test = {
+        .depth_attachment_format = daxa::Format::D32_SFLOAT,
+        .enable_depth_test = true,
+        .enable_depth_write = true,
+        // .depth_test_compare_op = daxa::CompareOp::GREATER_OR_EQUAL,
+        // .min_depth_bounds = 1.0f,
+        // .max_depth_bounds = 0.0f,
+    },
     .raster = {
         .primitive_topology = daxa::PrimitiveTopology::TRIANGLE_LIST,
         .primitive_restart_enable = false,
@@ -61,6 +69,11 @@ inline void task_draw_scene(RendererContext & context)
                 context.main_task_list.images.t_swapchain_image,
                 daxa::TaskImageAccess::SHADER_WRITE_ONLY,
                 daxa::ImageMipArraySlice{} 
+            },
+            { 
+                context.main_task_list.images.t_depth_image,
+                daxa::TaskImageAccess::DEPTH_ATTACHMENT,
+                daxa::ImageMipArraySlice{.image_aspect = daxa::ImageAspectFlagBits::DEPTH} 
             }
         },
         .task = [&](daxa::TaskRuntime const & runtime)
@@ -68,6 +81,7 @@ inline void task_draw_scene(RendererContext & context)
             auto cmd_list = runtime.get_command_list();
             auto dimensions = context.swapchain.get_surface_extent();
             auto swapchain_image = runtime.get_images(context.main_task_list.images.t_swapchain_image);
+            auto depth_image = runtime.get_images(context.main_task_list.images.t_depth_image);
             auto index_buffer = runtime.get_buffers(context.main_task_list.buffers.t_scene_indices);
             auto vertex_buffer = runtime.get_buffers(context.main_task_list.buffers.t_scene_vertices);
             auto transforms_buffer = runtime.get_buffers(context.main_task_list.buffers.t_transform_data);
@@ -78,7 +92,14 @@ inline void task_draw_scene(RendererContext & context)
                     .load_op = daxa::AttachmentLoadOp::CLEAR,
                     .clear_value = std::array<f32, 4>{0.02, 0.02, 0.02, 1.0},
                 }},
-                .depth_attachment = {},
+                .depth_attachment = 
+                {{
+                    .image_view = depth_image[0].default_view(),
+                    .layout = daxa::ImageLayout::ATTACHMENT_OPTIMAL,
+                    .load_op = daxa::AttachmentLoadOp::CLEAR,
+                    .store_op = daxa::AttachmentStoreOp::STORE,
+                    .clear_value = daxa::ClearValue{daxa::DepthValue{1.0f, 0}},
+                }},
                 .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}
             });
 

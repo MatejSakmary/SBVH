@@ -30,6 +30,7 @@ struct RendererContext
         struct TaskListImages
         {
             daxa::TaskImageId t_swapchain_image;
+            daxa::TaskImageId t_depth_image;
         };
 
         struct TaskListBuffers
@@ -85,6 +86,7 @@ struct RendererContext
     daxa::PipelineCompiler pipeline_compiler;
 
     daxa::ImageId swapchain_image;
+    daxa::ImageId depth_image;
     daxa::ImGuiRenderer imgui_renderer;
 
     Buffers buffers;

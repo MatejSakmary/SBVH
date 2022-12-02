@@ -25,6 +25,16 @@ Renderer::Renderer(const AppWindow & window) :
     context.pipelines.p_draw_AABB = context.pipeline_compiler.create_raster_pipeline(DRAW_AABB_TASK_RASTER_PIPE_INFO).value();
     context.pipelines.p_draw_scene = context.pipeline_compiler.create_raster_pipeline(DRAW_SCENE_TASK_RASTER_PIPE_INFO).value();
 
+    // TODO(msakmary) move this into create resolution dependent resources function...
+    auto extent = context.swapchain.get_surface_extent();
+    context.depth_image = context.device.create_image({
+        .format = daxa::Format::D32_SFLOAT,
+        .aspect = daxa::ImageAspectFlagBits::DEPTH,
+        .size = {extent.x, extent.y, 1},
+        .usage = daxa::ImageUsageFlagBits::DEPTH_STENCIL_ATTACHMENT,
+        .debug_name = "depth image"
+    });
+
     context.buffers.transforms_buffer.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
         .size = sizeof(TransformData),
@@ -96,6 +106,20 @@ void Renderer::create_main_task()
         }
     );
 
+    context.main_task_list.images.t_depth_image = 
+        context.main_task_list.task_list.create_task_image(
+        {
+            .initial_access = daxa::AccessConsts::NONE,
+            .initial_layout = daxa::ImageLayout::UNDEFINED,
+            .swapchain_image = false,
+            .debug_name = "t_debug_image"
+        }
+    );
+
+    context.main_task_list.task_list.add_runtime_image(
+        context.main_task_list.images.t_depth_image,
+        context.depth_image);
+
     context.main_task_list.buffers.t_aabb_infos = 
         context.main_task_list.task_list.create_task_buffer(
         {
@@ -149,7 +173,7 @@ void Renderer::create_main_task()
     task_fill_buffers(context);
     task_draw_scene(context);
     task_draw_AABB(context);
-    task_draw_imgui(context);
+    // task_draw_imgui(context);
     context.main_task_list.task_list.submit({});
     context.main_task_list.task_list.present({});
     context.main_task_list.task_list.complete();
@@ -158,6 +182,22 @@ void Renderer::create_main_task()
 void Renderer::resize()
 {
     context.swapchain.resize();
+    // TODO(msakmary) move this into create resolution dependent resources function...
+    if(!context.depth_image.is_empty())
+    {
+        context.main_task_list.task_list.remove_runtime_image(
+            context.main_task_list.images.t_depth_image, context.depth_image);
+        context.device.destroy_image(context.depth_image);
+    }
+    auto extent = context.swapchain.get_surface_extent();
+    context.depth_image = context.device.create_image({
+        .format = daxa::Format::D32_SFLOAT,
+        .aspect = daxa::ImageAspectFlagBits::DEPTH,
+        .size = {extent.x, extent.y, 1},
+        .usage = daxa::ImageUsageFlagBits::DEPTH_STENCIL_ATTACHMENT,
+        .debug_name = "depth image"
+    });
+    context.main_task_list.task_list.add_runtime_image(context.main_task_list.images.t_depth_image, context.depth_image);
 }
 
 void Renderer::draw()
@@ -310,6 +350,7 @@ Renderer::~Renderer()
 {
     context.device.wait_idle();
     ImGui_ImplGlfw_Shutdown();
+    context.device.destroy_image(context.depth_image);
     context.device.destroy_buffer(context.buffers.index_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.transforms_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);

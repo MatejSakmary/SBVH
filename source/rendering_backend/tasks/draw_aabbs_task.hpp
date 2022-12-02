@@ -26,6 +26,14 @@ inline static const daxa::RasterPipelineInfo DRAW_AABB_TASK_RASTER_PIPE_INFO
             .format = daxa::Format::B8G8R8A8_SRGB,
         },
     },
+    .depth_test = {
+        .depth_attachment_format = daxa::Format::D32_SFLOAT,
+        .enable_depth_test = true,
+        .enable_depth_write = true,
+        // .depth_test_compare_op = daxa::CompareOp::GREATER_OR_EQUAL,
+        // .min_depth_bounds = 1.0f,
+        // .max_depth_bounds = 0.0f,
+    },
     .raster = {
         .primitive_topology = daxa::PrimitiveTopology::LINE_STRIP,
         .primitive_restart_enable = true,
@@ -58,6 +66,11 @@ inline void task_draw_AABB(RendererContext & context)
                 context.main_task_list.images.t_swapchain_image,
                 daxa::TaskImageAccess::SHADER_WRITE_ONLY,
                 daxa::ImageMipArraySlice{} 
+            },
+            { 
+                context.main_task_list.images.t_depth_image,
+                daxa::TaskImageAccess::DEPTH_ATTACHMENT,
+                daxa::ImageMipArraySlice{.image_aspect = daxa::ImageAspectFlagBits::DEPTH} 
             }
         },
         .task = [&](daxa::TaskRuntime const & runtime)
@@ -66,6 +79,7 @@ inline void task_draw_AABB(RendererContext & context)
             auto dimensions = context.swapchain.get_surface_extent();
             auto swapchain_image = runtime.get_images(context.main_task_list.images.t_swapchain_image);
             auto index_buffer = runtime.get_buffers(context.main_task_list.buffers.t_cube_indices);
+            auto depth_image = runtime.get_images(context.main_task_list.images.t_depth_image);
             auto transforms_buffer = runtime.get_buffers(context.main_task_list.buffers.t_transform_data);
             auto aabbs_buffer = runtime.get_buffers(context.main_task_list.buffers.t_aabb_infos);
             cmd_list.begin_renderpass({
@@ -74,7 +88,13 @@ inline void task_draw_AABB(RendererContext & context)
                     .image_view = swapchain_image[0].default_view(),
                     .load_op = daxa::AttachmentLoadOp::LOAD,
                 }},
-                .depth_attachment = {},
+                .depth_attachment = 
+                {{
+                    .image_view = depth_image[0].default_view(),
+                    .layout = daxa::ImageLayout::ATTACHMENT_OPTIMAL,
+                    .load_op = daxa::AttachmentLoadOp::LOAD,
+                    .store_op = daxa::AttachmentStoreOp::STORE,
+                }},
                 .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}
             });
 
