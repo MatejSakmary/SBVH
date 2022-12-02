@@ -102,7 +102,7 @@ Application::Application() :
         }
     ),
     state{ .minimized = false },
-    renderer{window.get_native_handle()},
+    renderer{window},
     scene{"resources/scenes/suzanne_fbx/suzanne.fbx"}
 {
 }

@@ -3,6 +3,7 @@
 #include <vector>
 #include <daxa/daxa.hpp>
 #include <daxa/utils/task_list.hpp>
+#include <daxa/utils/imgui.hpp>
 
 #include "shared/draw_aabb_shared.inl"
 
@@ -84,6 +85,7 @@ struct RendererContext
     daxa::PipelineCompiler pipeline_compiler;
 
     daxa::ImageId swapchain_image;
+    daxa::ImGuiRenderer imgui_renderer;
 
     Buffers buffers;
     MainTaskList main_task_list;

@@ -1,12 +1,13 @@
+#include <dlfcn.h>
 #include "renderer.hpp"
 
-Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
+Renderer::Renderer(const AppWindow & window) :
     camera {{.position = {0.0, 0.0, 0.0}, .front = {0.0, 0.0, 1.0}, .up = {0.0, 1.0, 0.0}}},
     context {.vulkan_context = daxa::create_context({.enable_validation = true}),
             .device = context.vulkan_context.create_device({.debug_name = "Daxa device"})}
 {
     context.swapchain = context.device.create_swapchain({ 
-        .native_window = window_handle,
+        .native_window = window.get_native_handle(),
         .native_window_platform = daxa::NativeWindowPlatform::XLIB_API,
         .present_mode = daxa::PresentMode::DOUBLE_BUFFER_WAIT_FOR_VBLANK,
         .image_usage = daxa::ImageUsageFlagBits::TRANSFER_DST | daxa::ImageUsageFlagBits::COLOR_ATTACHMENT,
@@ -63,6 +64,15 @@ Renderer::Renderer(daxa::NativeWindowHandle window_handle) :
         0, 1, 2, 3, 4, 5, 0, 3, 0xFFFFFFFF,
         6, 5, 4, 7, 2, 1, 6, 7, 0xFFFFFFFF
     };
+    ImGui::CreateContext();
+    ImGui_ImplGlfw_InitForVulkan(window.get_glfw_window_handle(), true);
+    auto &io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    context.imgui_renderer = daxa::ImGuiRenderer({
+        .device = context.device,
+        .pipeline_compiler = context.pipeline_compiler,
+        .format = context.swapchain.get_format(),
+    });
     create_main_task();
 }
 
@@ -139,6 +149,7 @@ void Renderer::create_main_task()
     task_fill_buffers(context);
     task_draw_scene(context);
     task_draw_AABB(context);
+    task_draw_imgui(context);
     context.main_task_list.task_list.submit({});
     context.main_task_list.task_list.present({});
     context.main_task_list.task_list.complete();
@@ -210,6 +221,7 @@ void Renderer::draw()
         DEBUG_OUT("[Renderer::draw()] Got empty image from swapchain");
         return;
     }
+    ui_update();
     context.main_task_list.task_list.execute();
     reload_raster_pipeline(context.pipelines.p_draw_AABB);
     reload_raster_pipeline(context.pipelines.p_draw_scene);
@@ -297,6 +309,7 @@ void Renderer::reload_scene_data(const Scene & scene)
 Renderer::~Renderer()
 {
     context.device.wait_idle();
+    ImGui_ImplGlfw_Shutdown();
     context.device.destroy_buffer(context.buffers.index_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.transforms_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
