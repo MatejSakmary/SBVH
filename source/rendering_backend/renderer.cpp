@@ -90,8 +90,8 @@ void Renderer::create_main_task()
 {
     context.main_task_list.task_list = daxa::TaskList({
         .device = context.device,
-        .dont_reorder_tasks = false,
-        .dont_use_split_barriers = false,
+        .reorder_tasks = true,
+        .use_split_barriers = true,
         .swapchain = context.swapchain,
         .debug_name = "main_tasklist"
     });
@@ -173,7 +173,7 @@ void Renderer::create_main_task()
     task_fill_buffers(context);
     task_draw_scene(context);
     task_draw_AABB(context);
-    // task_draw_imgui(context);
+    task_draw_imgui(context);
     context.main_task_list.task_list.submit({});
     context.main_task_list.task_list.present({});
     context.main_task_list.task_list.complete();

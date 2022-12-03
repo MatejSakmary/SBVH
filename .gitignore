@@ -38,3 +38,4 @@ build/*
 *.mtl
 *.obj
 *.fbx
+*.ply
