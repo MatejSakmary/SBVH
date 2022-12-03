@@ -6,27 +6,66 @@ void Scene::process_mesh(const ProcessMeshInfo & info)
 {
     auto & new_mesh = info.object.meshes.emplace_back(RuntimeMesh{});
     new_mesh.vertices.reserve(info.mesh->mNumVertices);
-    new_mesh.indices.reserve(info.mesh->mNumFaces);
-
+    new_mesh.indices.reserve(info.mesh->mNumFaces * 3); // expect triangles
     for(u32 vertex = 0; vertex < info.mesh->mNumVertices; vertex++)
     {
+        f32vec3 pre_transform_position{ 
+            info.mesh->mVertices[vertex].x,
+            info.mesh->mVertices[vertex].y,
+            info.mesh->mVertices[vertex].z
+        };
+        f32vec3 pre_transform_normal{
+            info.mesh->mNormals[vertex].x,
+            info.mesh->mNormals[vertex].y,
+            info.mesh->mNormals[vertex].z
+        };
+
+        // Runtime rendering data
         new_mesh.vertices.emplace_back(Vertex{
-            .position = {info.mesh->mVertices[vertex].x,
-                         info.mesh->mVertices[vertex].y,
-                         info.mesh->mVertices[vertex].z},
-            .normal =   {info.mesh->mNormals[vertex].x,
-                         info.mesh->mNormals[vertex].y,
-                         info.mesh->mNormals[vertex].z}
+            .position = pre_transform_position,
+            .normal = pre_transform_normal,
         });
     }
 
+    raytracing_scene.primitives.reserve(raytracing_scene.primitives.size() + info.mesh->mNumFaces);
+    f32mat4x4 m_model = info.object.transform;
+
+    // NOTE(msakmary) I am assuming triangles here
     for(u32 face = 0; face < info.mesh->mNumFaces; face++)
     {
         aiFace face_obj = info.mesh->mFaces[face];
-        for(u32 index = 0; index < face_obj.mNumIndices; index++)
-        {
-            new_mesh.indices.emplace_back(face_obj.mIndices[index]);
-        }
+
+        new_mesh.indices.emplace_back(face_obj.mIndices[0]);
+        new_mesh.indices.emplace_back(face_obj.mIndices[1]);
+        new_mesh.indices.emplace_back(face_obj.mIndices[2]);
+
+        const auto v0 = info.mesh->mVertices[face_obj.mIndices[0]];
+        const auto v1 = info.mesh->mVertices[face_obj.mIndices[1]];
+        const auto v2 = info.mesh->mVertices[face_obj.mIndices[2]];
+            
+        f32vec4 pre_transform_v0{ v0.x, v0.y, v0.z, 1.0f };
+        f32vec4 pre_transform_v1{ v1.x, v1.y, v1.z, 1.0f };
+        f32vec4 pre_transform_v2{ v2.x, v2.y, v2.z, 1.0f };
+
+        f32vec3 post_transform_v0 = m_model * pre_transform_v0;
+        f32vec3 post_transform_v1 = m_model * pre_transform_v1;
+        f32vec3 post_transform_v2 = m_model * pre_transform_v2;
+
+        f32vec3 normal{
+            glm::normalize(
+                glm::cross(
+                    post_transform_v1 - post_transform_v0, 
+                    post_transform_v2 - post_transform_v0
+                )
+            )
+        };
+        // Raytracing data
+        raytracing_scene.primitives.emplace_back(Triangle{
+            .v0 = post_transform_v0,
+            .v1 = post_transform_v1,
+            .v2 = post_transform_v2,
+            .normal = normal
+        });
     }
 }
 

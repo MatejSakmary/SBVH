@@ -31,7 +31,7 @@ struct RuntimeSceneObject
 };
 
 // Scene object used in raytracing
-struct RaytracingSceneObject
+struct RaytracingScene
 {
     std::vector<Triangle> primitives;
 };
@@ -46,11 +46,12 @@ struct ProcessMeshInfo
 struct Scene
 {
     std::vector<RuntimeSceneObject> runtime_scene_objects;
-    std::vector<RaytracingSceneObject> raytracing_scene_objects;
+    RaytracingScene raytracing_scene;
 
     Scene(const std::string scene_path);
 
     private:
         void process_scene(const aiScene * scene);
         void process_mesh(const ProcessMeshInfo & info);
+        void convert_to_raytrace_scene();
 };

@@ -30,8 +30,11 @@ inline void ui_update()
     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
     ImGui::End();
 
-    ImGui::Begin("Hallo window");
-    ImGui::Text("Hallo");
+    ImGui::Begin("Render controls window");
+    if (ImGui::Button("Default Button", {100, 20}))
+    {
+        DEBUG_OUT("BUTTON PRESSED");
+    }
     ImGui::End();
 
     ImGui::Begin("Docking");
