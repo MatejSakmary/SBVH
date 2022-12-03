@@ -8,6 +8,7 @@ add_executable(${PROJECT_NAME}
     "source/rendering_backend/renderer.cpp"
     "source/rendering_backend/camera.cpp"
     "source/raytracing_backend/scene.cpp"
+    "source/raytracing_backend/bvh.cpp"
 )
 
 find_package(assimp CONFIG REQUIRED)

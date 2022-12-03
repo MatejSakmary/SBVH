@@ -75,41 +75,44 @@ inline void task_draw_AABB(RendererContext & context)
         },
         .task = [&](daxa::TaskRuntime const & runtime)
         {
-            auto cmd_list = runtime.get_command_list();
-            auto dimensions = context.swapchain.get_surface_extent();
-            auto swapchain_image = runtime.get_images(context.main_task_list.images.t_swapchain_image);
-            auto index_buffer = runtime.get_buffers(context.main_task_list.buffers.t_cube_indices);
-            auto depth_image = runtime.get_images(context.main_task_list.images.t_depth_image);
-            auto transforms_buffer = runtime.get_buffers(context.main_task_list.buffers.t_transform_data);
-            auto aabbs_buffer = runtime.get_buffers(context.main_task_list.buffers.t_aabb_infos);
-            cmd_list.begin_renderpass({
-                .color_attachments = 
-                {{
-                    .image_view = swapchain_image[0].default_view(),
-                    .load_op = daxa::AttachmentLoadOp::LOAD,
-                }},
-                .depth_attachment = 
-                {{
-                    .image_view = depth_image[0].default_view(),
-                    .layout = daxa::ImageLayout::ATTACHMENT_OPTIMAL,
-                    .load_op = daxa::AttachmentLoadOp::LOAD,
-                    .store_op = daxa::AttachmentStoreOp::STORE,
-                }},
-                .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}
-            });
+            if(context.buffers.aabb_info_buffer.cpu_buffer.size() > 0)
+            {
+                auto cmd_list = runtime.get_command_list();
+                auto dimensions = context.swapchain.get_surface_extent();
+                auto swapchain_image = runtime.get_images(context.main_task_list.images.t_swapchain_image);
+                auto index_buffer = runtime.get_buffers(context.main_task_list.buffers.t_cube_indices);
+                auto depth_image = runtime.get_images(context.main_task_list.images.t_depth_image);
+                auto transforms_buffer = runtime.get_buffers(context.main_task_list.buffers.t_transform_data);
+                auto aabbs_buffer = runtime.get_buffers(context.main_task_list.buffers.t_aabb_infos);
+                cmd_list.begin_renderpass({
+                    .color_attachments = 
+                    {{
+                        .image_view = swapchain_image[0].default_view(),
+                        .load_op = daxa::AttachmentLoadOp::LOAD,
+                    }},
+                    .depth_attachment = 
+                    {{
+                        .image_view = depth_image[0].default_view(),
+                        .layout = daxa::ImageLayout::ATTACHMENT_OPTIMAL,
+                        .load_op = daxa::AttachmentLoadOp::LOAD,
+                        .store_op = daxa::AttachmentStoreOp::STORE,
+                    }},
+                    .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}
+                });
 
-            auto m_model = glm::mat4x4(1.0f);
-            cmd_list.set_pipeline(context.pipelines.p_draw_AABB);
-            cmd_list.push_constant(AABBDrawPC{
-                .transforms = context.device.get_device_address(transforms_buffer[0]),
-                .aabb_transforms = context.device.get_device_address(aabbs_buffer[0]),
-            });
-            cmd_list.set_index_buffer(index_buffer[0], 0, sizeof(u32));
-            cmd_list.draw_indexed({
-                .index_count = INDEX_COUNT,
-                .instance_count = static_cast<u32>(context.buffers.aabb_info_buffer.cpu_buffer.size())
-            });
-            cmd_list.end_renderpass();
+                auto m_model = glm::mat4x4(1.0f);
+                cmd_list.set_pipeline(context.pipelines.p_draw_AABB);
+                cmd_list.push_constant(AABBDrawPC{
+                    .transforms = context.device.get_device_address(transforms_buffer[0]),
+                    .aabb_transforms = context.device.get_device_address(aabbs_buffer[0]),
+                });
+                cmd_list.set_index_buffer(index_buffer[0], 0, sizeof(u32));
+                cmd_list.draw_indexed({
+                    .index_count = INDEX_COUNT,
+                    .instance_count = static_cast<u32>(context.buffers.aabb_info_buffer.cpu_buffer.size())
+                });
+                cmd_list.end_renderpass();
+            }
         },
         .debug_name = "draw AABB",
     });

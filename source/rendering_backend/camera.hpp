@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../types.hpp"
+#include "../utils.hpp"
 
 struct CameraInfo
 {

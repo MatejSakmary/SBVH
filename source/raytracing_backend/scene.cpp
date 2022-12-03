@@ -128,4 +128,5 @@ Scene::Scene(const std::string scene_path)
     }
 
     process_scene(scene);
+    raytracing_scene.bvh.construct_bvh_from_data(raytracing_scene.primitives);
 }

@@ -41,28 +41,6 @@ Renderer::Renderer(const AppWindow & window) :
         .debug_name = "transform info"
     });
 
-    // ================  TODO(msakmary) move this where it belongs later ========================
-    context.buffers.aabb_info_buffer.cpu_buffer.reserve(10 * 10 * 10);
-    for(size_t x = 0; x < 10; x++)
-    {
-        for(size_t y = 0; y < 10; y++)
-        {
-            for(size_t z = 0; z < 10; z++)
-            {
-                context.buffers.aabb_info_buffer.cpu_buffer.emplace_back(AABBGeometryInfo {
-                    .position = {f32(x) * 2.0f, f32(y) * 2.0f, f32(z) * 2.0f},
-                    .scale = {1.0f - f32(x) * 0.01f, 1.0f - f32(y) * 0.01f, 1.0f - f32(z) * 0.01f}
-                });
-            }
-        }
-    }
-    context.buffers.aabb_info_buffer.gpu_buffer = context.device.create_buffer({
-        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
-        .size = static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()),
-        .debug_name = "aabb_infos"
-    });
-    // ==========================================================================================
-
     context.buffers.index_buffer.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
         .size = sizeof(IndexBuffer),
@@ -120,18 +98,7 @@ void Renderer::create_main_task()
         context.main_task_list.images.t_depth_image,
         context.depth_image);
 
-    context.main_task_list.buffers.t_aabb_infos = 
-        context.main_task_list.task_list.create_task_buffer(
-        {
-            .initial_access = daxa::AccessConsts::NONE,
-            .debug_name = "t_aabb_infos"
-        }
-    );
-    context.main_task_list.task_list.add_runtime_buffer(
-        context.main_task_list.buffers.t_aabb_infos,
-        context.buffers.aabb_info_buffer.gpu_buffer);
-
-
+    #pragma region camera_transforms
     context.main_task_list.buffers.t_transform_data = 
         context.main_task_list.task_list.create_task_buffer(
         {
@@ -142,7 +109,9 @@ void Renderer::create_main_task()
     context.main_task_list.task_list.add_runtime_buffer(
         context.main_task_list.buffers.t_transform_data,
         context.buffers.transforms_buffer.gpu_buffer);
+    #pragma endregion camera_transforms
 
+    #pragma region cube_indices
     context.main_task_list.buffers.t_cube_indices = 
         context.main_task_list.task_list.create_task_buffer(
         {
@@ -153,6 +122,7 @@ void Renderer::create_main_task()
     context.main_task_list.task_list.add_runtime_buffer(
         context.main_task_list.buffers.t_cube_indices,
         context.buffers.index_buffer.gpu_buffer);
+    #pragma endregion cube_indices
 
     context.main_task_list.buffers.t_scene_vertices = 
         context.main_task_list.task_list.create_task_buffer(
@@ -167,6 +137,14 @@ void Renderer::create_main_task()
         {
             .initial_access = daxa::AccessConsts::NONE,
             .debug_name = "t_scene_indices"
+        }
+    );
+
+    context.main_task_list.buffers.t_aabb_infos = 
+        context.main_task_list.task_list.create_task_buffer(
+        {
+            .initial_access = daxa::AccessConsts::NONE,
+            .debug_name = "t_aabb_infos"
         }
     );
 
@@ -287,6 +265,16 @@ void Renderer::reload_scene_data(const Scene & scene)
         context.device.destroy_buffer(context.buffers.scene_indices.gpu_buffer);
         context.buffers.scene_indices.cpu_buffer.clear();
     }
+    if(!context.buffers.aabb_info_buffer.gpu_buffer.is_empty())
+    {
+        context.main_task_list.task_list.remove_runtime_buffer(
+            context.main_task_list.buffers.t_aabb_infos,
+            context.buffers.aabb_info_buffer.gpu_buffer);
+
+        context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
+        context.buffers.aabb_info_buffer.cpu_buffer.clear();
+    }
+
     context.render_info.objects.clear();
     size_t scene_vertex_cnt = 0;
     size_t scene_index_cnt = 0;
@@ -322,6 +310,8 @@ void Renderer::reload_scene_data(const Scene & scene)
         }
     }
 
+    context.buffers.aabb_info_buffer.cpu_buffer = scene.raytracing_scene.bvh.get_bvh_visualization_data();
+
     context.buffers.scene_vertices.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
         .size = static_cast<u32>(scene_vertex_cnt * sizeof(SceneGeometryVertices)),
@@ -331,6 +321,7 @@ void Renderer::reload_scene_data(const Scene & scene)
     context.main_task_list.task_list.add_runtime_buffer(
         context.main_task_list.buffers.t_scene_vertices,
         context.buffers.scene_vertices.gpu_buffer);
+
 
     context.buffers.scene_indices.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
@@ -342,7 +333,19 @@ void Renderer::reload_scene_data(const Scene & scene)
         context.main_task_list.buffers.t_scene_indices,
         context.buffers.scene_indices.gpu_buffer);
 
+
+    context.buffers.aabb_info_buffer.gpu_buffer = context.device.create_buffer({
+        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
+        .size = static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()),
+        .debug_name = "aabb_infos"
+    });
+
+    context.main_task_list.task_list.add_runtime_buffer(
+        context.main_task_list.buffers.t_aabb_infos,
+        context.buffers.aabb_info_buffer.gpu_buffer);
+
     context.conditionals.fill_scene_geometry = true;
+    context.conditionals.fill_aabbs = true;
     DEBUG_OUT("[Renderer::reload_scene_data()] scene reload successfull");
 }
 

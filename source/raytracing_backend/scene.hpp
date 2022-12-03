@@ -10,6 +10,7 @@
 
 #include "../types.hpp"
 #include "triangle.hpp"
+#include "bvh.hpp"
 
 struct Vertex
 {
@@ -34,6 +35,7 @@ struct RuntimeSceneObject
 struct RaytracingScene
 {
     std::vector<Triangle> primitives;
+    BVH bvh;
 };
 
 struct ProcessMeshInfo

@@ -58,7 +58,7 @@ struct RendererContext
     {
         b32 fill_indices = true;
         b32 fill_transforms = true;
-        b32 fill_aabbs = true;
+        b32 fill_aabbs = false;
         b32 fill_scene_geometry = false;
     };
 
