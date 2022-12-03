@@ -1,11 +1,12 @@
 #pragma once
 
+#include <string>
 #include <daxa/daxa.hpp>
 #include <daxa/utils/task_list.hpp>
 #include <daxa/utils/imgui.hpp>
 #include <imgui_impl_glfw.h>
 
-inline void ui_update()
+inline void ui_update(const Camera & camera)
 {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -37,7 +38,10 @@ inline void ui_update()
     }
     ImGui::End();
 
-    ImGui::Begin("Docking");
+    ImGui::Begin("Camera Info");
+    ImGui::Text("Camera position is: ");
+    ImGui::SameLine();
+    ImGui::Text(glm::to_string(camera.get_camera_position()).c_str());
     ImGui::End();
 
     ImGui::Render();

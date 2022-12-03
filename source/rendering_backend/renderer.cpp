@@ -261,7 +261,7 @@ void Renderer::draw()
         DEBUG_OUT("[Renderer::draw()] Got empty image from swapchain");
         return;
     }
-    ui_update();
+    ui_update(camera);
     context.main_task_list.task_list.execute();
     reload_raster_pipeline(context.pipelines.p_draw_AABB);
     reload_raster_pipeline(context.pipelines.p_draw_scene);

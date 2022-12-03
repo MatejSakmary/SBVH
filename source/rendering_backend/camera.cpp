@@ -60,3 +60,8 @@ f32mat4x4 Camera::get_view_matrix()
 {
     return glm::lookAt(position, position + front, up);
 }
+
+f32vec3 Camera::get_camera_position() const
+{
+    return position;
+}
