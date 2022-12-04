@@ -51,9 +51,9 @@ struct Application
 
 
         void init_window();
-        void mouse_callback(f64 x, f64 y);
-        void mouse_button_callback(i32 button, i32 action, i32 mods);
-        void key_callback(i32 key, i32 code, i32 action, i32 mods);
-        void window_resize_callback(i32 width, i32 height);
+        void mouse_callback(const f64 x, const f64 y);
+        void mouse_button_callback(const i32 button, const i32 action, const i32 mods);
+        void window_resize_callback(const i32 width, const i32 height);
+        void key_callback(const i32 key, const i32 code, const i32 action, const i32 mods);
         void update_app_state();
 };

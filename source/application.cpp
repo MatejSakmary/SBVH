@@ -3,7 +3,7 @@
 
 #include "utils.hpp"
 
-void Application::mouse_callback(f64 x, f64 y)
+void Application::mouse_callback(const f64 x, const f64 y)
 {
     f32 x_offset;
     f32 y_offset;
@@ -24,17 +24,17 @@ void Application::mouse_callback(f64 x, f64 y)
     }
 }
 
-void Application::mouse_button_callback(i32 button, i32 action, i32 mods)
+void Application::mouse_button_callback(const i32 button, const i32 action, const i32 mods)
 {
 
 }
 
-void Application::window_resize_callback(i32 width, i32 height)
+void Application::window_resize_callback(const i32 width, const i32 height)
 {
     renderer.resize();
 }
 
-void Application::key_callback(i32 key, i32 code, i32 action, i32 mods)
+void Application::key_callback(const i32 key, const i32 code, const i32 action, const i32 mods)
 {
     if(action == GLFW_PRESS || action == GLFW_RELEASE)
     {
@@ -80,27 +80,15 @@ void Application::key_callback(i32 key, i32 code, i32 action, i32 mods)
 Application::Application() : 
     window({1080, 720},
     WindowVTable {
-        .mouse_pos_callback = std::bind(
-            &Application::mouse_callback, this,
-            std::placeholders::_1,
-            std::placeholders::_2),
-        .mouse_button_callback = std::bind(
-            &Application::mouse_button_callback, this,
-            std::placeholders::_1,
-            std::placeholders::_2,
-            std::placeholders::_3),
-        .key_callback = std::bind(
-            &Application::key_callback, this,
-            std::placeholders::_1,
-            std::placeholders::_2,
-            std::placeholders::_3,
-            std::placeholders::_4),
-        .window_resized_callback = std::bind(
-            &Application::window_resize_callback, this,
-            std::placeholders::_1,
-            std::placeholders::_2)
-        }
-    ),
+        .mouse_pos_callback = [this](const f64 x, const f64 y)
+            {this->mouse_callback(x, y);},
+        .mouse_button_callback = [this](const i32 button, const i32 action, const i32 mods)
+            {this->mouse_button_callback(button, action, mods);},
+        .key_callback = [this](const i32 key, const i32 code, const i32 action, const i32 mods)
+            {this->key_callback(key, code, action, mods);},
+        .window_resized_callback = [this](const i32 width, const i32 height)
+            {this->window_resize_callback(width, height);},
+    }),
     state{ .minimized = false },
     renderer{window},
     scene{"resources/scenes/suzanne_fbx/suzanne.fbx"}
