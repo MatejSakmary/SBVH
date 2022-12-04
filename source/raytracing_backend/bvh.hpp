@@ -5,6 +5,19 @@
 #include "../utils.hpp"
 #include "../rendering_backend/shared/draw_aabb_shared.inl"
 
+struct SAHCalculateInfo
+{
+    f32 left_primitive_count;
+    f32 right_primitive_count;
+    f32 left_aabb_area;
+    f32 right_aabb_area;
+    f32 parent_aabb_area;
+    f32 ray_aabb_test_cost;
+    f32 ray_tri_test_cost;
+};
+
+auto SAH(const SAHCalculateInfo & info) -> f32;
+
 struct AABB
 {
     // left_bottom_front is defined as the minimum possible coordinates in all three
@@ -19,7 +32,9 @@ struct AABB
     AABB();
     AABB(const f32vec3 & left_bottom_front, const f32vec3 & right_top_back);
     // expands the min and max bounds of an AABB to contained passed vertex
-    void expand_bounds(const f32vec3 & vertex);
+    auto expand_bounds(const f32vec3 & vertex) -> void;
+    auto expand_bounds(const Triangle & triangle) -> void;
+    auto get_area() const -> f32;
 };
 
 struct Node
@@ -33,7 +48,7 @@ struct Node
 
 struct BVH
 {
-    void construct_bvh_from_data(const std::vector<Triangle> & primitives);
+    auto construct_bvh_from_data(std::vector<Triangle> & primitives) -> void;
     auto get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>;
 
     private:

@@ -24,6 +24,6 @@ layout (location = 0) out f32vec4 out_color;
 
 void main()
 {
-    out_color = f32vec4(normal_in, 1.0);
+    out_color = f32vec4((normal_in + 1.0) / 2.0, 1.0);
 }
 #endif

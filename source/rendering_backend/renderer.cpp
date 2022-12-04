@@ -2,7 +2,7 @@
 #include "renderer.hpp"
 
 Renderer::Renderer(const AppWindow & window) :
-    camera {{.position = {0.0, 0.0, 0.0}, .front = {0.0, 0.0, 1.0}, .up = {0.0, 1.0, 0.0}}},
+    camera {{.position = {0.0, 0.0, 500.0}, .front = {0.0, 0.0, -1.0}, .up = {0.0, 1.0, 0.0}}},
     context {.vulkan_context = daxa::create_context({.enable_validation = true}),
             .device = context.vulkan_context.create_device({.debug_name = "Daxa device"})}
 {
@@ -211,7 +211,7 @@ void Renderer::draw()
 
     // ==============  TODO(msakmary) move this somewhere where it belongs ==================
     f32 aspect = f32(context.swapchain.get_surface_extent().x) / f32(context.swapchain.get_surface_extent().y);
-    f32mat4x4 m_proj = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 500.0f);
+    f32mat4x4 m_proj = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 5000.0f);
     /* GLM is using OpenGL standard where Y coordinate of the clip coordinates is inverted */
     m_proj[1][1] *= -1;
     auto m_view = camera.get_view_matrix();
