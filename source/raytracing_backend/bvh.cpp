@@ -43,10 +43,6 @@ auto BVH::construct_bvh_from_data(std::vector<Triangle> & primitives) -> void
     f32 best_cost = primitives.size() * leaf_create_cost * node.bounding_box.get_area();
     Axis best_axis = Axis::LAST;
     i32 best_event = -1;
-    DEBUG_VAR_OUT(best_cost);
-    DEBUG_VAR_OUT(best_axis);
-    DEBUG_VAR_OUT(best_event);
-    DEBUG_OUT("BUILDING BVH ========= \n");
 
     for(u32 axis = Axis::X; axis < Axis::LAST; axis++)
     {
@@ -92,17 +88,38 @@ auto BVH::construct_bvh_from_data(std::vector<Triangle> & primitives) -> void
     DEBUG_VAR_OUT(best_cost);
     DEBUG_VAR_OUT(best_axis);
     DEBUG_VAR_OUT(best_event);
+
+    auto & left_child = bvh_nodes.emplace_back();
+    node.left_index = bvh_nodes.size() - 1;
+    for(int i = 0; i < best_event; i++)
+    {
+        left_child.bounding_box.expand_bounds(primitives.at(i));
+    }
+
+    auto & right_child = bvh_nodes.emplace_back();
+    node.right_index = bvh_nodes.size() - 1;
+    for(int i = best_event; i < primitives.size(); i++)
+    {
+        right_child.bounding_box.expand_bounds(primitives.at(i));
+    }
 }
 
 auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
 {
     std::vector<AABBGeometryInfo> info;
+    info.reserve(bvh_nodes.size());
 
-    const auto & aabb = bvh_nodes.at(0).bounding_box;
-    info.emplace_back(AABBGeometryInfo{
-        .position = daxa_vec3_from_glm(aabb.left_bottom_front),
-        .scale = daxa_vec3_from_glm(aabb.right_top_back - aabb.left_bottom_front)
-    });
+    f32 depth = 0.0f;
+    for(const auto & node : bvh_nodes)
+    {
+        const auto & aabb = node.bounding_box;
+        info.emplace_back(AABBGeometryInfo{
+            .position = daxa_vec3_from_glm(aabb.left_bottom_front),
+            .scale = daxa_vec3_from_glm(aabb.right_top_back - aabb.left_bottom_front),
+            .depth = static_cast<daxa::f32>(depth)
+        });
+        if(depth == 0.0f) {depth += 1.0f;}
+    }
     return info;
 }
 

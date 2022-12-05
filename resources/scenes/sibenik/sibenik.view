@@ -1,0 +1,13 @@
+Current viewpoint = (NFF + VRML'97 format) 
+#from 26.0428 -2.26897 9.95332
+#dir -0.934451 0.0794734 -0.34711
+#at 25.0474 -2.23839 9.86306
+#up -0.0902418 0.00227215 0.995917
+#angle 79.2785
+#hither  1
+#resolution 512 512
+Viewpoint {
+position 26.0428 -2.26897 9.95332
+orientation -0.571053 -0.553499 -0.606249 -2.02461
+fieldOfView 0.691836
+}
