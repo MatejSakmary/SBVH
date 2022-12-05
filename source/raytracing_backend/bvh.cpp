@@ -40,9 +40,13 @@ auto BVH::construct_bvh_from_data(std::vector<Triangle> & primitives) -> void
     }
 
     // split algorithm
-    f32 best_cost = primitives.size() * leaf_create_cost;
+    f32 best_cost = primitives.size() * leaf_create_cost * node.bounding_box.get_area();
     Axis best_axis = Axis::LAST;
     i32 best_event = -1;
+    DEBUG_VAR_OUT(best_cost);
+    DEBUG_VAR_OUT(best_axis);
+    DEBUG_VAR_OUT(best_event);
+    DEBUG_OUT("BUILDING BVH ========= \n");
 
     for(u32 axis = Axis::X; axis < Axis::LAST; axis++)
     {
@@ -65,15 +69,15 @@ auto BVH::construct_bvh_from_data(std::vector<Triangle> & primitives) -> void
 
         // right sweep
         AABB right_sweep_aabb;
-        for(size_t i = primitives.size() - 1; i >= 0 ; i++)
+        for(i32 i = primitives.size() - 1; i >= 0 ; i--)
         {
             right_sweep_aabb.expand_bounds(primitives.at(i));
-            left_sweep_areas.at(i) = right_sweep_aabb.get_area();
             f32 cost = SAH({
                 .left_primitive_count = static_cast<f32>(i),
                 .right_primitive_count = primitives.size() - static_cast<f32>(i),
                 .left_aabb_area = left_sweep_areas.at(i),
                 .right_aabb_area = right_sweep_aabb.get_area(),
+                .parent_aabb_area = node.bounding_box.get_area(),
                 .ray_aabb_test_cost = 3.0f,
                 .ray_tri_test_cost = 2.0f
             });
@@ -85,6 +89,9 @@ auto BVH::construct_bvh_from_data(std::vector<Triangle> & primitives) -> void
             }
         }
     }
+    DEBUG_VAR_OUT(best_cost);
+    DEBUG_VAR_OUT(best_axis);
+    DEBUG_VAR_OUT(best_event);
 }
 
 auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>

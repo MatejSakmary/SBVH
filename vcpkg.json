@@ -19,7 +19,7 @@
     "glm",
     "assimp"
   ],
-  "builtin-baseline": "163fe7bd3d67c41200617caaa245b5ba2ba854e6",
+  "builtin-baseline": "4340582bc30f3e539bd4f52e26418f7d62145956",
   "overrides": [
     {
       "name": "glfw3",
