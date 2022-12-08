@@ -46,6 +46,8 @@ struct SplitInfo
     SplitType type;
     i32 event;
     f32 cost;
+    const AABB left_bounding_box;
+    const AABB right_bounding_box;
 };
 
 struct SAHGreedySplitInfo

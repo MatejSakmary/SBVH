@@ -8,6 +8,8 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
     f32 best_cost = info.primitive_aabbs.size() * info.ray_primitive_cost * info.node.bounding_box.get_area();
     Axis best_axis = Axis::LAST;
     i32 best_event = -1;
+    AABB left_bounding_box;
+    AABB right_bounding_box;
 
     auto & primitive_aabbs = info.primitive_aabbs;
     for(u32 axis = Axis::X; axis < Axis::LAST; axis++)
@@ -21,12 +23,12 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
         std::sort(primitive_aabbs.begin(), primitive_aabbs.end(), compare_op);
 
         // left sweep
-        std::vector<f32> left_sweep_areas(primitive_aabbs.size(), 0.0);
+        std::vector<AABB> left_sweep_aabbs(primitive_aabbs.size());
         AABB left_sweep_aabb;
         for(size_t i = 0; i < primitive_aabbs.size(); i++)
         {
             left_sweep_aabb.expand_bounds(primitive_aabbs.at(i).aabb);
-            left_sweep_areas.at(i) = left_sweep_aabb.get_area();
+            left_sweep_aabbs.at(i) = left_sweep_aabb;
         }
 
         // right sweep
@@ -37,7 +39,7 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
             f32 cost = SAH({
                 .left_primitive_count = static_cast<f32>(i),
                 .right_primitive_count = primitive_aabbs.size() - static_cast<f32>(i),
-                .left_aabb_area = left_sweep_areas.at(i),
+                .left_aabb_area = left_sweep_aabbs.at(i).get_area(),
                 .right_aabb_area = right_sweep_aabb.get_area(),
                 .parent_aabb_area = info.node.bounding_box.get_area(),
                 .ray_aabb_test_cost = info.ray_aabb_test_cost,
@@ -48,6 +50,8 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
                 best_cost = cost;
                 best_event = i;
                 best_axis = static_cast<Axis>(axis);
+                left_bounding_box = left_sweep_aabbs.at(i);
+                right_bounding_box = right_sweep_aabb;
             }
         }
     }
@@ -56,7 +60,9 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
         .axis = best_axis,
         .type = SplitType::OBJECT,
         .event = best_event,
-        .cost = best_cost
+        .cost = best_cost,
+        .left_bounding_box = left_bounding_box,
+        .right_bounding_box = right_bounding_box
     };
 };
 
@@ -73,18 +79,12 @@ auto BVH::split_node(const SplitNodeInfo & info) -> void
         std::sort(info.primitive_aabbs.begin(), info.primitive_aabbs.end(), compare_op);
 
         auto & left_child = bvh_nodes.emplace_back();
+        left_child.bounding_box = info.split.left_bounding_box;
         info.node.left_index = bvh_nodes.size() - 1;
-        for(int i = 0; i < info.split.event; i++)
-        {
-            left_child.bounding_box.expand_bounds(info.primitive_aabbs.at(i).aabb);
-        }
 
         auto & right_child = bvh_nodes.emplace_back();
+        right_child.bounding_box = info.split.right_bounding_box;
         info.node.right_index = bvh_nodes.size() - 1;
-        for(int i = info.split.event; i < info.primitive_aabbs.size(); i++)
-        {
-            right_child.bounding_box.expand_bounds(info.primitive_aabbs.at(i).aabb);
-        }
     };
 
     switch(info.split.type)
