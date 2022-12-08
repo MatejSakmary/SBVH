@@ -39,3 +39,6 @@ build/*
 *.obj
 *.fbx
 *.ply
+*.conf
+*.obj.*
+*.view

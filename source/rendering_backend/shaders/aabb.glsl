@@ -43,13 +43,13 @@ layout (location = 0) in f32 depth_in;
 
 void main()
 {
-    f32vec3 color;
+    f32vec4 color;
     if(depth_in == 0.0)
     {
-        color = f32vec3( 0.3, 0.0, 0.0);
+        color = f32vec4( 0.0, 0.0, 1.0, 1.0);
     } else {
-        color = f32vec3( 1.0, 0.0, 0.0);
+        color = f32vec4( 1.0, 0.0, 0.0, 0.0);
     } 
-    out_color = f32vec4(color, 1.0);
+    out_color = f32vec4(color);
 }
 #endif
