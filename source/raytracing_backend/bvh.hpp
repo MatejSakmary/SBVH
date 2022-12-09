@@ -54,7 +54,7 @@ struct SAHGreedySplitInfo
 {
     const float ray_primitive_cost;
     const float ray_aabb_test_cost;
-    const BVHNode & node;
+    const u32 & node_idx;
     std::vector<PrimitiveAABB> & primitive_aabbs;
 };
 
@@ -62,7 +62,7 @@ struct SplitNodeInfo
 {
     const SplitInfo & split;
     std::vector<PrimitiveAABB> & primitive_aabbs;
-    BVHNode & node;
+    const u32 node_idx;
 };
 
 struct BVH
