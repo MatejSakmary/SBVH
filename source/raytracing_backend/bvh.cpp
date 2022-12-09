@@ -178,10 +178,10 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
     info.reserve(bvh_nodes.size());
 
     auto & root_node = bvh_nodes.at(0);
-    using Node = std::pair<f32, const BVHNode &>;  
+    using Node = std::pair<u32, const BVHNode &>;  
     std::queue<Node> que;
 
-    que.push({0.0f, root_node});
+    que.push({0u, root_node});
     while(!que.empty())
     {
         const auto & [depth, node] = que.front();
@@ -189,9 +189,8 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
         info.emplace_back(AABBGeometryInfo{
             .position = daxa_vec3_from_glm(aabb.min_bounds),
             .scale = daxa_vec3_from_glm(aabb.max_bounds - aabb.min_bounds),
-            .depth = static_cast<daxa::f32>(depth)
+            .depth = static_cast<daxa::u32>(depth)
         });
-
         
         if(node.left_index != 0) que.push({depth + 1.0f, bvh_nodes.at(node.left_index)});
         if(node.right_index != 0) que.push({depth + 1.0f, bvh_nodes.at(node.right_index)});

@@ -14,7 +14,7 @@ struct AABBGeometryInfo
 {
     daxa_f32vec3 position;
     daxa_f32vec3 scale;
-    daxa_f32 depth;
+    daxa_u32 depth;
 };
 DAXA_ENABLE_BUFFER_PTR(AABBGeometryInfo)
 

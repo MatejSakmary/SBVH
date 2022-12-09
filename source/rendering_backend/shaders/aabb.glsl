@@ -7,7 +7,7 @@ daxa_BufferPtr(AABBGeometryInfo) aabb_transforms = daxa_push_constant.aabb_trans
 
 #if defined(_VERTEX)
 // ===================== VERTEX SHADER ===============================
-layout(location = 0) out f32 depth_out;
+layout(location = 0) out u32 depth_out;
 f32vec3 vertices[8] = f32vec3[](
     f32vec3( 0.0,  1.0, 0.0 ),
     f32vec3( 0.0,  0.0, 0.0 ),
@@ -32,25 +32,26 @@ void main()
         f32vec4(  pos.x,   pos.y,   pos.z,  1.0)  // fourth column
     );
     mat4 m_proj_view_model = deref(camera_transforms).m_proj_view * m_model;
-    gl_Position = m_proj_view_model * pre_trans_pos;
     depth_out = deref(aabb_transforms[gl_InstanceIndex]).depth;
+    if(depth_out == 2.0 || depth_out == 1.0 || depth_out == 0.0)
+    {
+        gl_Position = m_proj_view_model * pre_trans_pos;
+    }else{
+        gl_Position = f32vec4(-1.0, -1.0, -1.0, 0);
+    }
 }
 
 #elif defined(_FRAGMENT)
 // ===================== FRAGMENT SHADER ===============================
 layout (location = 0) out f32vec4 out_color;
-layout (location = 0) in f32 depth_in;
+layout (location = 0) flat in u32 depth_out;
 
 void main()
 {
-    f32vec4 color;
-    if(depth_in == 3.0)
-    {
-        color = f32vec4( 1.0, 0.0, 0.0, 1.0);
-    } else {
-        discard;
-        color = f32vec4( 0.0, 0.0, 0.0, 0.0);
-    } 
+    f32vec4 color = f32vec4(1.0, 1.0, 1.0, 1.0);
+    if(depth_out == 0) color = f32vec4( 1.0, 0.0, 0.0, 1.0);
+    else if(depth_out == 1) color = f32vec4( 0.0, 0.0, 1.0, 1.0);
+    else if(depth_out == 2) color = f32vec4( 0.0, 1.0, 0.0, 1.0);
     out_color = f32vec4(color);
 }
 #endif
