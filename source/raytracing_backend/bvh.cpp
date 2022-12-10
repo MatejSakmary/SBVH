@@ -2,6 +2,124 @@
 
 #include <algorithm>
 #include <queue>
+#include <array>
+
+auto BVH::project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void
+{
+    // We are sure that all of the points are not left of the border
+    // -> there is atleast one point and at most two points on the right side of the border
+
+    // store the indices of the vertices which are to the right of the border and which are to the left
+    std::vector<i32> indices_right_of;
+    std::vector<i32> indices_left_of;
+    indices_right_of.reserve(2);
+    indices_left_of.reserve(2);
+
+    for(int i = 0; i < 3; i++)
+    {
+        if(info.triangle[i][info.splitting_axis] < info.plane_axis_coord)
+        {
+            info.left_aabb.expand_bounds(info.triangle[i]);
+            indices_left_of.push_back(i);
+        } else {
+            indices_right_of.push_back(i);
+        }
+    }
+
+    // take all of the vertices on the left of the border and find intersection
+    // with the splitting plane using linear interpolation: 
+    //      The ratio between distances:
+    //          t = dist(left_vert.axis,split_plane.axis) / dist(left_vert.axis,right_vert.axis)
+    //          where .axis is the coordinate in the splitting axis
+    //      gives the interpolation factor t which is then used to interpolate between 
+    //      left_vert and right_vert (left_vert + t * right_vert) giving us the intersection point
+    
+    // We loop through all the points on the left side of the border (which are either one or two)
+    // and calculate all the edges with the points on the right side of border 
+    // (which are either two or one respectively)
+    // This covers both scenarios 1) v0 v1 | v2 and v0 | v1 v2 since in the first case the inner
+    // forloop will just execute once and in the second the outer one will only execute once
+    for(const auto left_index : indices_left_of)
+    {
+        // add the left vertex to the left aabb
+        const auto & left_vertex = info.triangle[left_index];
+        info.left_aabb.expand_bounds(left_vertex);
+
+        // dist_vertex_plane  (vertex_plane)  -> distance(left_vert.axis, split_plane.axis)
+        // dist_vertex_vertex (vertex vertex) -> distance(left_vert.axis, right_vert.axis)
+        f32 dist_vertex_plane = info.plane_axis_coord - left_vertex[info.splitting_axis];
+        for(const auto right_index : indices_right_of)
+        {
+            const auto & right_vertex = info.triangle[right_index];
+            f32 dist_vertex_vertex = right_vertex[info.splitting_axis] - left_vertex[info.splitting_axis];
+            const auto intersect_vertex = glm::mix(left_vertex, right_vertex, dist_vertex_plane / dist_vertex_vertex);
+
+            // expand left and right aabb since the point lies exactly on the border
+            info.left_aabb.expand_bounds(intersect_vertex);
+            info.right_aabb.expand_bounds(intersect_vertex);
+        }
+    }
+}
+
+auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
+{
+    const auto & parent_node = bvh_nodes[info.node_idx];
+    const auto & parent_aabb = parent_node.bounding_box;
+
+    const f32vec3 node_size = parent_aabb.max_bounds - parent_aabb.min_bounds;
+    const f32vec3 bin_size = node_size / f32(info.bin_count);
+
+    // each bin counter consist of two separate counter for start and end indices
+    // each bin has this set of counters for each splitting axis
+    using BinCounter = std::array<std::array<u32,3>,2>;
+    // first dimenstion is the vector dimension which is the bin index 
+    // second dimension is the 2 element array -> start/end array (0 - start array, 1 - end array)
+    // third dimensions is the 3 element array -> the axis (0 = X, 1 = Y, 2 = Z)
+    std::vector<BinCounter> bin_counters(
+        info.bin_count,
+        std::array<std::array<u32,3>,2>({
+            std::array<u32, 3>({0u, 0u, 0u}),
+            std::array<u32, 3>({0u, 0u, 0u})})); 
+
+    // first dimension is the 
+    std::array<std::vector<AABB>, 3> bin_aabbs {
+        std::vector<AABB>(info.bin_count),
+        std::vector<AABB>(info.bin_count),
+        std::vector<AABB>(info.bin_count)};
+    
+    // project references into bins
+    for(const auto & primitive_aabb : info.primitive_aabbs)
+    {
+        const auto & primitive = *primitive_aabb.primitive;
+        const auto start_bin_idx = glm::trunc((primitive_aabb.aabb.min_bounds - parent_aabb.min_bounds) / bin_size);
+        const auto end_bin_idx = glm::trunc((primitive_aabb.aabb.min_bounds - parent_aabb.min_bounds) / bin_size);
+
+        for(u32 axis = Axis::X; axis < Axis::LAST; axis++)
+        {
+            // entire aabb lies in the bin just add it directly
+            if(start_bin_idx[axis] == end_bin_idx[axis])
+            {
+                bin_aabbs[axis][start_bin_idx[axis]].expand_bounds(primitive_aabb.aabb);
+                continue;
+            }
+            // project the primitive into separate bins
+            for(u32 bin_idx = start_bin_idx[axis]; bin_idx < end_bin_idx[axis]; bin_idx++)
+            {
+                // clip the primitive by the right bin border and expand the bins aabb
+                project_primitive_into_bin({
+                    .triangle = primitive,
+                    .splitting_axis = static_cast<Axis>(axis),
+                    .plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * bin_idx,
+                    .left_aabb = bin_aabbs[axis][bin_idx],
+                    .right_aabb = bin_aabbs[axis][bin_idx+1]
+                });
+            }
+        }
+    }
+
+    return {};
+    // 2nd pass -> distribute references into child boxes
+}
 
 auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
 {
@@ -140,6 +258,13 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
             .node_idx = node_idx,
             .primitive_aabbs = primitive_aabbs
         });
+
+        // SplitInfo spatial_split = spatial_best_split({
+        //     .ray_primitive_cost = 2.0f,
+        //     .ray_aabb_test_cost = 3.0f,
+        //     .node_idx = node_idx,
+        //     .primitive_aabbs = primitive_aabbs
+        // });
 
         DEBUG_VAR_OUT(sah_split.axis);
         DEBUG_VAR_OUT(sah_split.cost);

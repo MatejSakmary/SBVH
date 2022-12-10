@@ -91,7 +91,7 @@ Application::Application() :
     }),
     state{ .minimized = false },
     renderer{window},
-    scene{"resources/scenes/cubes/cubes.fbx"}
+    scene{"resources/scenes/triangle/triangle.fbx"}
 {
 }
 
