@@ -18,16 +18,23 @@ auto BVH::project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void
     indices_right_of.reserve(2);
     indices_left_of.reserve(2);
 
+    // sort the indices
     for(int i = 0; i < 3; i++)
     {
-        if(info.triangle[i][info.splitting_axis] < info.plane_axis_coord)
+        if(info.triangle[i][info.splitting_axis] <= info.right_plane_axis_coord)
         {
+            // add the left vertex to the left aabb
+            // this may result in bin aabb to be way too big -> fixed before computing SAH
             info.left_aabb.expand_bounds(info.triangle[i]);
             indices_left_of.push_back(i);
         } else {
             indices_right_of.push_back(i);
         }
     }
+
+    // all three triangle vertices were to the left of the right splitting plane
+    // this can only happen for the last bin exit early as there is no more work
+    if(indices_left_of.size() == 3) { return; };
 
     // take all of the vertices on the left of the border and find intersection
     // with the splitting plane using linear interpolation: 
@@ -44,18 +51,16 @@ auto BVH::project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void
     // forloop will just execute once and in the second the outer one will only execute once
     for(const auto left_index : indices_left_of)
     {
-        // add the left vertex to the left aabb
         const auto & left_vertex = info.triangle[left_index];
-        info.left_aabb.expand_bounds(left_vertex);
 
         // dist_vertex_plane  (vertex_plane)  -> distance(left_vert.axis, split_plane.axis)
         // dist_vertex_vertex (vertex vertex) -> distance(left_vert.axis, right_vert.axis)
-        f32 dist_vertex_plane = info.plane_axis_coord - left_vertex[info.splitting_axis];
+        f32 dist_vertex_plane = info.right_plane_axis_coord - left_vertex[info.splitting_axis];
         for(const auto right_index : indices_right_of)
         {
             const auto & right_vertex = info.triangle[right_index];
             f32 dist_vertex_vertex = right_vertex[info.splitting_axis] - left_vertex[info.splitting_axis];
-            // TODO(msakmary) mby I should clamp this vertex to the parents aabb range? -> FIND OUT!
+            // this may result in bin aabb to be way too big -> fixed before computing SAH
             const auto intersect_vertex = glm::mix(left_vertex, right_vertex, dist_vertex_plane / dist_vertex_vertex);
 
             // expand left and right aabb since the point lies exactly on the border
@@ -73,20 +78,18 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
     const f32vec3 node_size = parent_aabb.max_bounds - parent_aabb.min_bounds;
     const f32vec3 bin_size = node_size / f32(info.bin_count);
 
-    // each bin counter consist of two separate counter for start and end indices
-    // each bin has this set of counters for each splitting axis
-    using BinCounter = std::array<std::array<u32,2>,3>;
-    // first dimenstion is the vector dimension which is the bin index 
-    // second dimensions is the 3 element array -> the axis (0 = X, 1 = Y, 2 = Z)
+    // each bin counter consist of two separate counters for start and end indices
+    using BinCounters = std::vector<std::array<u32,2>>;
+
+    // first dimensionn is the 3 element array -> the axis (0 = X, 1 = Y, 2 = Z)
+    // second dimenstion is the vector dimension which is the bin index 
     // third dimension is the 2 element array -> start/end array (0 - start array, 1 - end array)
     const u32 START_BIN_IDX = 0;
     const u32 END_BIN_IDX = 1;
-    std::vector<BinCounter> bin_counters(
-        info.bin_count,
-        BinCounter({
-            std::array<u32, 2>({0u, 0u}),
-            std::array<u32, 2>({0u, 0u}), 
-            std::array<u32, 2>({0u, 0u})}));
+    std::array<BinCounters,3> bin_counters{
+        BinCounters(info.bin_count, std::array<u32, 2>({0u, 0u})),
+        BinCounters(info.bin_count, std::array<u32, 2>({0u, 0u})),
+        BinCounters(info.bin_count, std::array<u32, 2>({0u, 0u}))};
 
     // first dimension is the axis in which we are splitting
     // second dimension is the bin index
@@ -99,60 +102,68 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
     for(const auto & primitive_aabb : info.primitive_aabbs)
     {
         const auto & primitive = *primitive_aabb.primitive;
-        // if we are splitting already split primtive the primitives bounds might be outside
-        // the nodes bounds thus we need to clip them to the nodes bounds
-        const auto primitive_min_cliped_bounds = component_wise_max(primitive_aabb.aabb.min_bounds, parent_aabb.min_bounds);
-        const auto primitive_max_cliped_bounds = component_wise_min(primitive_aabb.aabb.max_bounds, parent_aabb.max_bounds);
 
-        // because we clipped earlier start_bin_idx and end_bin_idx should be value in the range [0, bin_count - 1]
-        u32vec3 start_bin_idx = glm::trunc((primitive_min_cliped_bounds - parent_aabb.min_bounds) / bin_size);
-        u32vec3 end_bin_idx = glm::trunc((primitive_max_cliped_bounds - parent_aabb.min_bounds) / bin_size);
+        u32vec3 start_bin_idx = glm::trunc((primitive_aabb.aabb.min_bounds - parent_aabb.min_bounds) / bin_size);
+        u32vec3 end_bin_idx = glm::trunc((primitive_aabb.aabb.max_bounds - parent_aabb.min_bounds) / bin_size);
+        // start_bin_idx and end_bin_idx should be value in the range [0, bin_count - 1]
         assert(glm::all(glm::greaterThanEqual(start_bin_idx, u32vec3(0u))) &&
                glm::all(glm::lessThan(start_bin_idx, u32vec3(info.bin_count))));
 
-        for(u32 axis = Axis::X; axis < Axis::LAST; axis++)
+        for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
         {
-            // start_bin_idx[axis] - returns the bin index which is the first (from the left) which the primitive intersects in the selected splitting axis
-            // TODO(msakmary) swap the indexing order so that bin_aabbs and bin_counters match
-            bin_counters[start_bin_idx[i32(axis)]][axis][START_BIN_IDX] += 1;
-            bin_counters[end_bin_idx[i32(axis)]][axis][END_BIN_IDX] += 1;
+            // start_bin_idx[axis] - returns the bin index which is the first (from the left) which the 
+            // primitive intersects in the selected splitting axis
+            // [axis][bin_idx][start/end]
+            bin_counters.at(axis).at(start_bin_idx[axis]).at(START_BIN_IDX) += 1;
+            bin_counters.at(axis).at(end_bin_idx[axis]).at(END_BIN_IDX) += 1;
 
             // entire aabb lies in the bin just add it directly
-            if(start_bin_idx[i32(axis)] == end_bin_idx[i32(axis)])
+            if(start_bin_idx[axis] == end_bin_idx[axis])
             {
-                bin_aabbs[axis][start_bin_idx[axis]].expand_bounds(primitive_aabb.aabb);
+                bin_aabbs.at(axis).at(start_bin_idx[axis]).expand_bounds(primitive_aabb.aabb);
                 continue;
             }
             // project the primitive into separate bins
-            for(u32 bin_idx = start_bin_idx[axis]; bin_idx < end_bin_idx[axis]; bin_idx++)
+            for(u32 bin_idx = start_bin_idx[axis]; bin_idx <= end_bin_idx[axis]; bin_idx++)
             {
                 // clip the primitive by the right bin border and expand the bins aabb
                 project_primitive_into_bin({
                     .triangle = primitive,
                     .splitting_axis = static_cast<Axis>(axis),
-                    .plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * f32(bin_idx),
-                    .left_aabb = bin_aabbs[axis][bin_idx],
-                    .right_aabb = bin_aabbs[axis][bin_idx+1]
+                    .right_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * f32(bin_idx + 1u),
+                    .left_aabb = bin_aabbs.at(axis).at(bin_idx),
+                    // when we are processing the right-most bin there are no further right bins
+                    //    - we pass the left bin twice here which fixes this problem with no further side effects
+                    .right_aabb = bin_idx < end_bin_idx[axis] ?
+                        bin_aabbs.at(axis).at(bin_idx + 1) :
+                        bin_aabbs.at(axis).at(bin_idx)
                 });
             }
         }
     }
+    
+    // clip the bins' AABBs to the maximum possible size (this needs to be done because there were some checks
+    // we omitted from the project_primitive_into_bin function which may result in AABBs which extend over the 
+    // maximum possible bin AABB)
+    for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
+    {
+        // TODO(msakmary) CONTINUE HERE!
+    }
 
     return {};
-    // 2nd pass -> distribute references into child boxes
 }
 
 auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
 {
     // split algorithm
-    f32 best_cost = info.primitive_aabbs.size() * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
+    f32 best_cost = f32(info.primitive_aabbs.size()) * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
     Axis best_axis = Axis::LAST;
     i32 best_event = -1;
     AABB left_bounding_box;
     AABB right_bounding_box;
 
     auto & primitive_aabbs = info.primitive_aabbs;
-    for(u32 axis = Axis::X; axis < Axis::LAST; axis++)
+    for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
     {
         auto compare_op = [axis](const PrimitiveAABB & first, const PrimitiveAABB & second) -> bool
         {
@@ -272,9 +283,22 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
 
     const f32 RAY_PRIMITVE_INTERSECTION_COST = 2.0f;
     const f32 RAY_AABB_INTERSECTION_COST = 3.0f;
+
+
+
     while(!nodes.empty())
     {
         auto & [node_idx, primitive_aabbs] = nodes.front();
+
+        SplitInfo spatial_split = spatial_best_split({
+            .ray_primitive_cost = RAY_PRIMITVE_INTERSECTION_COST,
+            .ray_aabb_test_cost = RAY_AABB_INTERSECTION_COST,
+            .bin_count = 4,
+            .node_idx = node_idx,
+            .primitive_aabbs = primitive_aabbs
+        });
+        return;
+
         SplitInfo sah_split = SAH_greedy_best_split({
             .ray_primitive_cost = RAY_PRIMITVE_INTERSECTION_COST,
             .ray_aabb_test_cost = RAY_AABB_INTERSECTION_COST,
@@ -282,11 +306,6 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
             .primitive_aabbs = primitive_aabbs
         });
 
-        //     .ray_primitive_cost = 2.0f,
-        //     .ray_aabb_test_cost = 3.0f,
-        //     .node_idx = node_idx,
-        //     .primitive_aabbs = primitive_aabbs
-        // });
 
         DEBUG_VAR_OUT(sah_split.axis);
         DEBUG_VAR_OUT(sah_split.cost);

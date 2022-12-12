@@ -78,7 +78,7 @@ struct ProjectPrimitiveInfo
 {
     const Triangle & triangle;
     const Axis splitting_axis;
-    const f32 plane_axis_coord;
+    const f32 right_plane_axis_coord;
     AABB & left_aabb;
     AABB & right_aabb;
 };

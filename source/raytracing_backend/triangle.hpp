@@ -5,7 +5,7 @@
 
 #include "../types.hpp"
 
-enum Axis : u32
+enum Axis : i32
 {
     X = 0,
     Y = 1, 
