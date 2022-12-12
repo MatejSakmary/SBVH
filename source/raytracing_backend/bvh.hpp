@@ -28,7 +28,7 @@ enum SplitType
 struct PrimitiveAABB
 {
     AABB aabb;
-    const Triangle * primitive;
+    const Triangle * primitive{};
 };
 
 struct BVHNode
@@ -36,8 +36,8 @@ struct BVHNode
     AABB bounding_box;
     // indices are always into the vector of bvh_nodes unless they are negative
     // in which case they are indexing into an array of scene primitives
-    i32 left_index;  
-    i32 right_index;
+    i32 left_index{};  
+    i32 right_index{};
 };
 
 struct SplitInfo
@@ -85,11 +85,12 @@ struct ProjectPrimitiveInfo
 
 struct BVH
 {
+    static auto project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void;
+    [[nodiscard]] auto get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>;
+
     auto construct_bvh_from_data(const std::vector<Triangle> & primitives) -> void;
-    auto get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>;
     auto SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo;
     auto spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo;
-    auto project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void;
     auto split_node(const SplitNodeInfo & info) -> void;
 
     private:

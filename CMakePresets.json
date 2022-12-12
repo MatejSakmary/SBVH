@@ -11,7 +11,10 @@
             "hidden": true,
             "binaryDir": "${sourceDir}/build/${presetName}",
             "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-            "generator": "Ninja Multi-Config"
+            "generator": "Ninja Multi-Config",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS" : true
+            }
         },
         {
             "name": "defaults-windows",
