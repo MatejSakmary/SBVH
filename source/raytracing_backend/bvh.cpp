@@ -24,8 +24,10 @@ auto BVH::project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void
         if(info.triangle[i][info.splitting_axis] <= info.right_plane_axis_coord)
         {
             // add the left vertex to the left aabb
-            // this may result in bin aabb to be way too big -> fixed before computing SAH
-            info.left_aabb.expand_bounds(info.triangle[i]);
+            if(info.triangle[i][info.splitting_axis] >= info.left_plane_axis_coord)
+            {
+                info.left_aabb.expand_bounds(info.triangle[i]);
+            }
             indices_left_of.push_back(i);
         } else {
             indices_right_of.push_back(i);
@@ -98,16 +100,22 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
         std::vector<AABB>(info.bin_count),
         std::vector<AABB>(info.bin_count)};
     
+    // used to offset max and min bounds of the primitive aabb in order to get correct start and end indices
+    // in case parent aabb perfectly alligns with the primitive aabb
+    const f32vec3 OFFSET = f32vec3(0.001f) * bin_size;
     // project references into bins
     for(const auto & primitive_aabb : info.primitive_aabbs)
     {
         const auto & primitive = *primitive_aabb.primitive;
 
-        u32vec3 start_bin_idx = glm::trunc((primitive_aabb.aabb.min_bounds - parent_aabb.min_bounds) / bin_size);
-        u32vec3 end_bin_idx = glm::trunc((primitive_aabb.aabb.max_bounds - parent_aabb.min_bounds) / bin_size);
+        u32vec3 start_bin_idx = glm::trunc(((primitive_aabb.aabb.min_bounds + OFFSET) - parent_aabb.min_bounds) / bin_size);
+        u32vec3 end_bin_idx = glm::trunc(((primitive_aabb.aabb.max_bounds - OFFSET) - parent_aabb.min_bounds) / bin_size);
         // start_bin_idx and end_bin_idx should be value in the range [0, bin_count - 1]
         assert(glm::all(glm::greaterThanEqual(start_bin_idx, u32vec3(0u))) &&
                glm::all(glm::lessThan(start_bin_idx, u32vec3(info.bin_count))));
+
+        assert(glm::all(glm::greaterThanEqual(end_bin_idx, u32vec3(0u))) &&
+               glm::all(glm::lessThan(end_bin_idx, u32vec3(info.bin_count))));
 
         for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
         {
@@ -130,6 +138,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
                 project_primitive_into_bin({
                     .triangle = primitive,
                     .splitting_axis = static_cast<Axis>(axis),
+                    .left_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * f32(bin_idx),
                     .right_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * f32(bin_idx + 1u),
                     .left_aabb = bin_aabbs.at(axis).at(bin_idx),
                     // when we are processing the right-most bin there are no further right bins
@@ -142,6 +151,15 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
         }
     }
     
+    for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
+    {
+        for(const auto & bin_aabb : bin_aabbs.at(axis))
+        {
+            auto & new_node = bvh_nodes.emplace_back();
+            new_node.bounding_box = bin_aabb;
+            new_node.left_index = axis;
+        }
+    }
     // clip the bins' AABBs to the maximum possible size (this needs to be done because there were some checks
     // we omitted from the project_primitive_into_bin function which may result in AABBs which extend over the 
     // maximum possible bin AABB)
@@ -340,13 +358,26 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
 
 auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
 {
+
+
     std::vector<AABBGeometryInfo> info;
     info.reserve(bvh_nodes.size());
 
     const auto & root_node = bvh_nodes.at(0);
     using Node = std::pair<u32, const BVHNode &>;  
-    std::queue<Node> que;
+    // SPATIAL SPLIT DEBUG CODE
+    for(const auto & bvh_node : bvh_nodes)
+    {
+        info.emplace_back(AABBGeometryInfo{
+            .position = daxa_vec3_from_glm(bvh_node.bounding_box.min_bounds),
+            .scale = daxa_vec3_from_glm(bvh_node.bounding_box.max_bounds - bvh_node.bounding_box.min_bounds),
+            .depth = static_cast<daxa::u32>(bvh_node.left_index)
+        });
+    }
+    return info;
 
+    // LEGIT CODE
+    std::queue<Node> que;
     que.push({0u, root_node});
     while(!que.empty())
     {

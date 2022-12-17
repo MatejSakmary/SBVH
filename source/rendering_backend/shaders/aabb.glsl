@@ -35,12 +35,12 @@ void main()
     );
     mat4 m_proj_view_model = deref(camera_transforms).m_proj_view * m_model;
     depth_out = deref(aabb_transforms[gl_InstanceIndex]).depth;
-    if(depth_out == 0.0 || depth_out == 1.0 || depth_out == 2.0)
+    if(depth_out == 2 || idx == 0) 
     {
         gl_Position = m_proj_view_model * pre_trans_pos;
-        return;
+    } else {
+        gl_Position = f32vec4(-1.0, -1.0, -1.0, 0);
     }
-    gl_Position = f32vec4(-1.0, -1.0, -1.0, 0);
 }
 
 #elif defined(_FRAGMENT)
@@ -52,12 +52,10 @@ layout (location = 2) flat in u32 idx;
 void main()
 {
     f32vec4 color = f32vec4(1.0, 1.0, 1.0, 1.0);
-    u32 color_idxx = idx % 11;
-    u32 color_idxy = idx % 3;
-    u32 color_idxz = idx % 7;
-    color.x = color_idxx / 11.0;
-    color.y = color_idxy / 3.0;
-    color.z = color_idxz / 7.0;
+    if(idx == 0)
+    {
+        color = f32vec4(1.0, 0.0, 0.0, 1.0);
+    }
     out_color = f32vec4(color);
 }
 #endif

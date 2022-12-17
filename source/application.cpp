@@ -89,9 +89,9 @@ Application::Application() :
         .window_resized_callback = [this](const i32 width, const i32 height)
             {this->window_resize_callback(width, height);},
     }),
-    state{ .minimized = false },
+    state{ .minimized = 0u },
     renderer{window},
-    scene{"resources/scenes/suzanne_fbx/suzanne.fbx"}
+    scene{"resources/scenes/spatial_test/plane_z_offset.fbx"}
 {
 }
 
