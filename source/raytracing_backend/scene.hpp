@@ -50,7 +50,7 @@ struct Scene
     std::vector<RuntimeSceneObject> runtime_scene_objects;
     RaytracingScene raytracing_scene;
 
-    Scene(const std::string scene_path);
+    explicit Scene(const std::string & scene_path);
 
     private:
         void process_scene(const aiScene * scene);

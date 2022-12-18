@@ -2,7 +2,8 @@
 
 Camera::Camera(const CameraInfo & info) : 
     position{info.position}, front{info.front}, up{info.up},
-    speed{100.0f}, pitch{0.0f}, yaw{-90.0f}, sensitivity{0.08f}
+    speed{100.0f}, pitch{0.0f}, yaw{-90.0f}, sensitivity{0.08f}, 
+    roll_sensitivity{20.0f}, roll{0.0f}
 {
 }
 
@@ -29,10 +30,10 @@ void Camera::move_camera(f32 delta_time, Direction direction)
         position -= glm::normalize(glm::cross(glm::cross(front,up), front)) * speed * delta_time;
         break;
     case Direction::ROLL_LEFT:
-        up = glm::rotate(up, glm::radians(-20.0f * delta_time), front);
+        up = glm::rotate(up, static_cast<f32>(glm::radians(-roll_sensitivity * delta_time)), front);
         break;
     case Direction::ROLL_RIGHT:
-        up = glm::rotate(up, glm::radians(20.0f * delta_time), front);
+        up = glm::rotate(up, static_cast<f32>(glm::radians(roll_sensitivity * delta_time)), front);
         break;
     
     default:
@@ -48,7 +49,10 @@ void Camera::update_front_vector(f32 x_offset, f32 y_offset)
     front_ = glm::rotate(front_, glm::radians(-sensitivity * y_offset), glm::cross(front,up));
 
     pitch = glm::degrees(glm::angle(front_, up));
-    if (pitch < 1.0f || pitch > 179.0f ) 
+
+    const f32 MAX_PITCH_ANGLE = 179.0f;
+    const f32 MIN_PITCH_ANGLE = 1.0f;
+    if (pitch < MIN_PITCH_ANGLE || pitch > MAX_PITCH_ANGLE ) 
     {
         return;
     }
@@ -56,12 +60,12 @@ void Camera::update_front_vector(f32 x_offset, f32 y_offset)
     front = front_;
 }
 
-f32mat4x4 Camera::get_view_matrix()
+auto Camera::get_view_matrix() -> f32mat4x4
 {
     return glm::lookAt(position, position + front, up);
 }
 
-f32vec3 Camera::get_camera_position() const
+auto Camera::get_camera_position() const -> f32vec3
 {
     return position;
 }

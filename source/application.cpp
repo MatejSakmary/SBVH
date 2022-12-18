@@ -101,20 +101,20 @@ Application::~Application()
 
 void Application::update_app_state()
 {
-    f32 this_frame_time = glfwGetTime();
+    f64 this_frame_time = glfwGetTime();
     state.delta_time =  this_frame_time - state.last_frame_time;
     state.last_frame_time = this_frame_time;
 
     if(state.key_table.data > 0)
     {
-        if(state.key_table.bits.W) renderer.camera.move_camera(state.delta_time, Direction::FORWARD);
-        if(state.key_table.bits.A) renderer.camera.move_camera(state.delta_time, Direction::LEFT);
-        if(state.key_table.bits.S) renderer.camera.move_camera(state.delta_time, Direction::BACK);
-        if(state.key_table.bits.D) renderer.camera.move_camera(state.delta_time, Direction::RIGHT);
-        if(state.key_table.bits.Q) renderer.camera.move_camera(state.delta_time, Direction::ROLL_LEFT);
-        if(state.key_table.bits.E) renderer.camera.move_camera(state.delta_time, Direction::ROLL_RIGHT);
-        if(state.key_table.bits.CTRL) renderer.camera.move_camera(state.delta_time, Direction::DOWN);
-        if(state.key_table.bits.SPACE) renderer.camera.move_camera(state.delta_time, Direction::UP);
+        if(state.key_table.bits.W)      { renderer.camera.move_camera(state.delta_time, Direction::FORWARD);    }
+        if(state.key_table.bits.A)      { renderer.camera.move_camera(state.delta_time, Direction::LEFT);       }
+        if(state.key_table.bits.S)      { renderer.camera.move_camera(state.delta_time, Direction::BACK);       }
+        if(state.key_table.bits.D)      { renderer.camera.move_camera(state.delta_time, Direction::RIGHT);      }
+        if(state.key_table.bits.Q)      { renderer.camera.move_camera(state.delta_time, Direction::ROLL_LEFT);  }
+        if(state.key_table.bits.E)      { renderer.camera.move_camera(state.delta_time, Direction::ROLL_RIGHT); }
+        if(state.key_table.bits.CTRL)   { renderer.camera.move_camera(state.delta_time, Direction::DOWN);       }
+        if(state.key_table.bits.SPACE)  { renderer.camera.move_camera(state.delta_time, Direction::UP);         }
     }
 }
 
@@ -125,7 +125,7 @@ void Application::main_loop()
         glfwPollEvents();
         update_app_state();
 
-        if (state.minimized) { DEBUG_OUT("[Application::main_loop()] Window minimized "); continue; } 
+        if (state.minimized != 0u) { DEBUG_OUT("[Application::main_loop()] Window minimized "); continue; } 
         renderer.draw();
     }
 }

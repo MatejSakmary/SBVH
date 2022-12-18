@@ -12,12 +12,12 @@ struct CameraInfo
 
 struct Camera
 {
-    Camera(const CameraInfo & info);
+    explicit Camera(const CameraInfo & info);
 
     void move_camera(f32 delta_time, Direction direction);
     void update_front_vector(f32 x_offset, f32 y_offset);
-    f32vec3 get_camera_position() const;
-    f32mat4x4 get_view_matrix();
+    [[nodiscard]] auto get_camera_position() const -> f32vec3;
+    [[nodiscard]] auto get_view_matrix() -> f32mat4x4;
 
     private:
         f32vec3 position;
@@ -28,4 +28,5 @@ struct Camera
         f32 roll;
         f32 speed;
         f32 sensitivity;
+        f32 roll_sensitivity;
 };

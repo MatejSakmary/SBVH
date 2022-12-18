@@ -25,13 +25,11 @@ struct Application
             } bits;
         };
 
-        f32 last_frame_time = 0.0f;
-        f32 delta_time = 0.0f;
-        b32 minimized = false;
-
-        b32 fly_cam = false;
-
-        b32 first_input = true;
+        f64 last_frame_time = 0.0f;
+        f64 delta_time = 0.0f;
+        b32 minimized = 0u;
+        b32 fly_cam = 0u;
+        b32 first_input = 1u;
         f32vec2 last_mouse_pos;
 
         KeyTable key_table;

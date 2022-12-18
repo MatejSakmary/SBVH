@@ -19,7 +19,7 @@ struct Renderer
 {
     Camera camera;
 
-    Renderer(const AppWindow & window);
+    explicit Renderer(const AppWindow & window);
     ~Renderer();
 
     void resize();

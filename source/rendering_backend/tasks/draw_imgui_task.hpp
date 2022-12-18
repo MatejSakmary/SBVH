@@ -6,6 +6,9 @@
 #include <daxa/utils/imgui.hpp>
 #include <imgui_impl_glfw.h>
 
+#include "../camera.hpp"
+#include "../renderer_context.hpp"
+
 inline void ui_update(const Camera & camera)
 {
     ImGui_ImplGlfw_NewFrame();

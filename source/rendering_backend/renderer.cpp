@@ -3,9 +3,9 @@
 
 Renderer::Renderer(const AppWindow & window) :
     camera {{.position = {0.0, 0.0, 500.0}, .front = {0.0, 0.0, -1.0}, .up = {0.0, 1.0, 0.0}}},
-    context {.vulkan_context = daxa::create_context({.enable_validation = true}),
-            .device = context.vulkan_context.create_device({.debug_name = "Daxa device"})}
+    context {.vulkan_context = daxa::create_context({.enable_validation = true})}
 {
+    context.device = context.vulkan_context.create_device({.debug_name = "Daxa device"});
     context.swapchain = context.device.create_swapchain({ 
         .native_window = window.get_native_handle(),
         .native_window_platform = daxa::NativeWindowPlatform::XLIB_API,
@@ -279,7 +279,7 @@ void Renderer::reload_scene_data(const Scene & scene)
     size_t scene_vertex_cnt = 0;
     size_t scene_index_cnt = 0;
     // pack scene vertices and scene indices into their separate GPU buffers
-    for(auto scene_runtime_object : scene.runtime_scene_objects)
+    for(const auto& scene_runtime_object : scene.runtime_scene_objects)
     {
         context.render_info.objects.push_back({
             .model_transform = scene_runtime_object.transform,
@@ -344,8 +344,8 @@ void Renderer::reload_scene_data(const Scene & scene)
         context.main_task_list.buffers.t_aabb_infos,
         context.buffers.aabb_info_buffer.gpu_buffer);
 
-    context.conditionals.fill_scene_geometry = true;
-    context.conditionals.fill_aabbs = true;
+    context.conditionals.fill_scene_geometry = static_cast<u32>(true);
+    context.conditionals.fill_aabbs = static_cast<u32>(true);
     DEBUG_OUT("[Renderer::reload_scene_data()] scene reload successfull");
 }
 

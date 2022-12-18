@@ -6,6 +6,7 @@
 #include <daxa/utils/imgui.hpp>
 
 #include "shared/draw_aabb_shared.inl"
+#include "../types.hpp"
 
 struct RendererContext
 {
@@ -56,10 +57,10 @@ struct RendererContext
 
     struct Conditionals
     {
-        b32 fill_indices = true;
-        b32 fill_transforms = true;
-        b32 fill_aabbs = false;
-        b32 fill_scene_geometry = false;
+        b32 fill_indices = static_cast<u32>(true);
+        b32 fill_transforms = static_cast<u32>(true);
+        b32 fill_aabbs = static_cast<u32>(false);
+        b32 fill_scene_geometry = static_cast<u32>(false);
     };
 
     // TODO(msakmary) perhaps reconsider moving this to Scene?

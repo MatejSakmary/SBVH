@@ -21,7 +21,7 @@ struct Triangle
 
     f32vec3 normal;
 
-    inline constexpr f32vec3 & operator [](int index)
+    inline constexpr auto operator [](int index) -> f32vec3 &
     {
         switch(index)
         {
@@ -36,7 +36,7 @@ struct Triangle
         }
     }
 
-    f32vec3 operator [](int index) const
+    auto operator [](int index) const -> f32vec3
     {
         switch(index)
         {

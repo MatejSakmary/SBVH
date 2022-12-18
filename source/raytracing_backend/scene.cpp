@@ -1,12 +1,13 @@
 #include "scene.hpp"
 
 #include <stack>
+#include <string>
 
 void Scene::process_mesh(const ProcessMeshInfo & info)
 {
     auto & new_mesh = info.object.meshes.emplace_back(RuntimeMesh{});
     new_mesh.vertices.reserve(info.mesh->mNumVertices);
-    new_mesh.indices.reserve(info.mesh->mNumFaces * 3); // expect triangles
+    new_mesh.indices.reserve(static_cast<std::vector<u32>::size_type>(info.mesh->mNumFaces) * 3); // expect triangles
     for(u32 vertex = 0; vertex < info.mesh->mNumVertices; vertex++)
     {
         f32vec3 pre_transform_position{ 
@@ -112,7 +113,7 @@ void Scene::process_scene(const aiScene * scene)
     }
 };
 
-Scene::Scene(const std::string scene_path)
+Scene::Scene(const std::string & scene_path)
 {
     Assimp::Importer importer;
     const aiScene * scene = importer.ReadFile( 
@@ -121,9 +122,11 @@ Scene::Scene(const std::string scene_path)
         aiProcess_JoinIdenticalVertices |
         aiProcess_SortByPType);
 
-    if((!scene) || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || (!scene->mRootNode))
+    if((scene == nullptr) || ((scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0u) || (scene->mRootNode == nullptr))
     {
-        DEBUG_OUT("[Scene::Scene()] Error assimp " << importer.GetErrorString());
+        std::string err_string = importer.GetErrorString();
+        DEBUG_OUT("[Scene::Scene()] Error assimp");
+        DEBUG_OUT(err_string);
         return;
     }
 

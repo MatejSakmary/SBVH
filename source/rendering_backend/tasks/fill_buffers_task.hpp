@@ -43,7 +43,7 @@ inline void task_fill_buffers(RendererContext & context)
             auto aabbs_buffer = runtime.get_buffers(context.main_task_list.buffers.t_aabb_infos);
 
             #pragma region indices
-            if(context.conditionals.fill_indices)
+            if(context.conditionals.fill_indices != 0u)
             {
                 auto indices_staging_buffer = context.device.create_buffer({
                     .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
@@ -52,7 +52,7 @@ inline void task_fill_buffers(RendererContext & context)
                 });
 
                 // copy data into staging buffer
-                auto index_buffer_ptr = context.device.get_host_address_as<IndexBuffer>(indices_staging_buffer);
+                auto *index_buffer_ptr = context.device.get_host_address_as<IndexBuffer>(indices_staging_buffer);
                 memcpy(index_buffer_ptr, &context.buffers.index_buffer.cpu_buffer, sizeof(IndexBuffer));
 
                 // copy staging buffer into gpu_buffer
@@ -64,12 +64,12 @@ inline void task_fill_buffers(RendererContext & context)
 
                 // destroy the stagin buffer after the copy is done
                 cmd_list.destroy_buffer_deferred(indices_staging_buffer);
-                context.conditionals.fill_indices = false;
+                context.conditionals.fill_indices = static_cast<u32>(false);
             }
             #pragma endregion indices
 
             #pragma region transforms
-            if(context.conditionals.fill_transforms)
+            if(context.conditionals.fill_transforms != 0u)
             {
                 auto transforms_staging_buffer = context.device.create_buffer({
                     .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
@@ -77,7 +77,7 @@ inline void task_fill_buffers(RendererContext & context)
                     .debug_name = "staging_transforms_buffer"
                 });
 
-                auto transform_buffer_ptr = context.device.get_host_address_as<TransformData>(transforms_staging_buffer);
+                auto *transform_buffer_ptr = context.device.get_host_address_as<TransformData>(transforms_staging_buffer);
                 memcpy(transform_buffer_ptr, &context.buffers.transforms_buffer.cpu_buffer, sizeof(TransformData));
 
                 cmd_list.copy_buffer_to_buffer({
@@ -87,12 +87,12 @@ inline void task_fill_buffers(RendererContext & context)
                 });
 
                 cmd_list.destroy_buffer_deferred(transforms_staging_buffer);
-                context.conditionals.fill_transforms = false;
+                context.conditionals.fill_transforms = static_cast<u32>(false);
             }
             #pragma endregion transforms
 
             #pragma region aabbs
-            if(context.conditionals.fill_aabbs)
+            if(context.conditionals.fill_aabbs != 0u)
             {
                 auto aabbs_staging_buffer = context.device.create_buffer({
                     .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
@@ -100,7 +100,7 @@ inline void task_fill_buffers(RendererContext & context)
                     .debug_name = "staging_aabbs_buffer"
                 });
 
-                auto aabbs_buffer_ptr = context.device.get_host_address_as<AABBGeometryInfo>(aabbs_staging_buffer);
+                auto *aabbs_buffer_ptr = context.device.get_host_address_as<AABBGeometryInfo>(aabbs_staging_buffer);
                 memcpy(aabbs_buffer_ptr, context.buffers.aabb_info_buffer.cpu_buffer.data(), 
                     static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()));
 
@@ -111,12 +111,12 @@ inline void task_fill_buffers(RendererContext & context)
                 });
 
                 cmd_list.destroy_buffer_deferred(aabbs_staging_buffer);
-                context.conditionals.fill_aabbs = false;
+                context.conditionals.fill_aabbs = static_cast<u32>(false);
             }
             #pragma endregion aabbs
 
             #pragma region scene_data
-            if(context.conditionals.fill_scene_geometry)
+            if(context.conditionals.fill_scene_geometry != 0u)
             {
                 auto vertices_staging_buffer = context.device.create_buffer({
                     .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
@@ -124,7 +124,7 @@ inline void task_fill_buffers(RendererContext & context)
                     .debug_name = "staging_vertices_buffer"
                 });
 
-                auto vertices_buffer_ptr = context.device.get_host_address_as<SceneGeometryVertices>(vertices_staging_buffer);
+                auto *vertices_buffer_ptr = context.device.get_host_address_as<SceneGeometryVertices>(vertices_staging_buffer);
                 memcpy(vertices_buffer_ptr, context.buffers.scene_vertices.cpu_buffer.data(), 
                     static_cast<u32>(sizeof(SceneGeometryVertices) * context.buffers.scene_vertices.cpu_buffer.size()));
 
@@ -140,7 +140,7 @@ inline void task_fill_buffers(RendererContext & context)
                     .debug_name = "staging_indices_buffer"
                 });
 
-                auto indices_buffer_ptr = context.device.get_host_address_as<SceneGeometryIndices>(indices_staging_buffer);
+                auto *indices_buffer_ptr = context.device.get_host_address_as<SceneGeometryIndices>(indices_staging_buffer);
                 memcpy(indices_buffer_ptr, context.buffers.scene_indices.cpu_buffer.data(), 
                     static_cast<u32>(sizeof(SceneGeometryIndices) * context.buffers.scene_indices.cpu_buffer.size()));
 
@@ -152,7 +152,7 @@ inline void task_fill_buffers(RendererContext & context)
 
                 cmd_list.destroy_buffer_deferred(vertices_staging_buffer);
                 cmd_list.destroy_buffer_deferred(indices_staging_buffer);
-                context.conditionals.fill_scene_geometry = false;
+                context.conditionals.fill_scene_geometry = static_cast<u32>(false);
             }
             #pragma endregion scene_data
 
