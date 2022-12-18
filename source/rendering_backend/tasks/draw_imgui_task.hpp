@@ -44,7 +44,7 @@ inline void ui_update(const Camera & camera)
     ImGui::Begin("Camera Info");
     ImGui::Text("Camera position is: ");
     ImGui::SameLine();
-    ImGui::Text(glm::to_string(camera.get_camera_position()).c_str());
+    ImGui::Text("%s", glm::to_string(camera.get_camera_position()).c_str());
     ImGui::End();
 
     ImGui::Render();

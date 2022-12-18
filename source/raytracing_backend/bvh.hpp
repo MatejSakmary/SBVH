@@ -80,6 +80,7 @@ struct ProjectPrimitiveInfo
     const Axis splitting_axis;
     const f32 left_plane_axis_coord;
     const f32 right_plane_axis_coord;
+    const AABB & parent_aabb;
     AABB & left_aabb;
     AABB & right_aabb;
 };

@@ -35,7 +35,7 @@ void main()
     );
     mat4 m_proj_view_model = deref(camera_transforms).m_proj_view * m_model;
     depth_out = deref(aabb_transforms[gl_InstanceIndex]).depth;
-    if(depth_out == 0 || idx == 0) 
+    if(depth_out == 2 || idx == 0) 
     {
         gl_Position = m_proj_view_model * pre_trans_pos;
     } else {

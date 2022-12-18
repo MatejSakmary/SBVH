@@ -24,9 +24,11 @@ auto BVH::project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void
         if(info.triangle[i][info.splitting_axis] <= info.right_plane_axis_coord)
         {
             // add the left vertex to the left aabb
-            if(info.triangle[i][info.splitting_axis] >= info.left_plane_axis_coord)
+            if(info.triangle[i][info.splitting_axis] > info.left_plane_axis_coord)
             {
-                info.left_aabb.expand_bounds(info.triangle[i]);
+                auto clipped_vertex = component_wise_min(info.triangle[i], info.parent_aabb.max_bounds);
+                clipped_vertex = component_wise_max(clipped_vertex, info.parent_aabb.min_bounds);
+                info.left_aabb.expand_bounds(clipped_vertex);
             }
             indices_left_of.push_back(i);
         } else {
@@ -62,8 +64,13 @@ auto BVH::project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void
         {
             const auto & right_vertex = info.triangle[right_index];
             f32 dist_vertex_vertex = right_vertex[info.splitting_axis] - left_vertex[info.splitting_axis];
-            // this may result in bin aabb to be way too big -> fixed before computing SAH
-            const auto intersect_vertex = glm::mix(left_vertex, right_vertex, dist_vertex_plane / dist_vertex_vertex);
+            auto intersect_vertex = glm::mix(left_vertex, right_vertex, dist_vertex_plane / dist_vertex_vertex);
+
+            // clip the vertex to the parent bounding box -> this is needed because we may be splitting a primitive
+            // which was already split before and so the parent bounding box does not fully contain the primitive.
+            // This may result in the intersect_vertex being outside of the parent bounding box
+            intersect_vertex = component_wise_min(intersect_vertex, info.parent_aabb.max_bounds);
+            intersect_vertex = component_wise_max(intersect_vertex, info.parent_aabb.min_bounds);
 
             // expand left and right aabb since the point lies exactly on the border
             info.left_aabb.expand_bounds(intersect_vertex);
@@ -108,14 +115,14 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
     {
         const auto & primitive = *primitive_aabb.primitive;
 
-        u32vec3 start_bin_idx = glm::trunc(((primitive_aabb.aabb.min_bounds + OFFSET) - parent_aabb.min_bounds) / bin_size);
-        u32vec3 end_bin_idx = glm::trunc(((primitive_aabb.aabb.max_bounds - OFFSET) - parent_aabb.min_bounds) / bin_size);
+        i32vec3 start_bin_idx = glm::trunc(((primitive_aabb.aabb.min_bounds + OFFSET) - parent_aabb.min_bounds) / bin_size);
+        i32vec3 end_bin_idx = glm::trunc(((primitive_aabb.aabb.max_bounds - OFFSET) - parent_aabb.min_bounds) / bin_size);
         // start_bin_idx and end_bin_idx should be value in the range [0, bin_count - 1]
-        assert(glm::all(glm::greaterThanEqual(start_bin_idx, u32vec3(0u))) &&
-               glm::all(glm::lessThan(start_bin_idx, u32vec3(info.bin_count))));
+        assert(glm::all(glm::greaterThanEqual(start_bin_idx, i32vec3(0))) &&
+               glm::all(glm::lessThan(start_bin_idx, i32vec3(info.bin_count))));
 
-        assert(glm::all(glm::greaterThanEqual(end_bin_idx, u32vec3(0u))) &&
-               glm::all(glm::lessThan(end_bin_idx, u32vec3(info.bin_count))));
+        assert(glm::all(glm::greaterThanEqual(end_bin_idx, i32vec3(0))) &&
+               glm::all(glm::lessThan(end_bin_idx, i32vec3(info.bin_count))));
 
         for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
         {
@@ -132,7 +139,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
                 continue;
             }
             // project the primitive into separate bins
-            for(u32 bin_idx = start_bin_idx[axis]; bin_idx <= end_bin_idx[axis]; bin_idx++)
+            for(i32 bin_idx = i32(start_bin_idx[axis]) - 1; bin_idx <= end_bin_idx[axis]; bin_idx++)
             {
                 // clip the primitive by the right bin border and expand the bins aabb
                 project_primitive_into_bin({
@@ -140,12 +147,15 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
                     .splitting_axis = static_cast<Axis>(axis),
                     .left_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * f32(bin_idx),
                     .right_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * f32(bin_idx + 1u),
-                    .left_aabb = bin_aabbs.at(axis).at(bin_idx),
-                    // when we are processing the right-most bin there are no further right bins
-                    //    - we pass the left bin twice here which fixes this problem with no further side effects
-                    .right_aabb = bin_idx < end_bin_idx[axis] ?
-                        bin_aabbs.at(axis).at(bin_idx + 1) :
-                        bin_aabbs.at(axis).at(bin_idx)
+                    .parent_aabb = parent_aabb,
+                    // there are some cases we have to take care of
+                    //    - by the way the algorithm is designed we have to run for start_bin_idx - 1 which has no aabb 
+                    //      left-of the splitting plane - we pass the aabb right-of splitting plane twice (so as left_aabb and right_aabb)
+                    //    - when running for the right-most aabb (which is passed as left_aabb in this case) there are no more right
+                    //      aabbs to pass into the right_aabb parameters - we pass the aabb left-of splitting plane twice (so as left_aabb and right_aabb)
+                    // in both cases the run will not add anything to the right/left aabb respectively so this is ok
+                    .left_aabb = bin_aabbs.at(axis).at(glm::max(bin_idx, start_bin_idx[axis])),
+                    .right_aabb = bin_aabbs.at(axis).at(glm::min(bin_idx + 1, end_bin_idx[axis]))
                 });
             }
         }
@@ -160,13 +170,14 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
             new_node.left_index = axis;
         }
     }
+
     // clip the bins' AABBs to the maximum possible size (this needs to be done because there were some checks
     // we omitted from the project_primitive_into_bin function which may result in AABBs which extend over the 
     // maximum possible bin AABB)
-    for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
-    {
-        // TODO(msakmary) CONTINUE HERE!
-    }
+    // for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
+    // {
+    //     // TODO(msakmary) CONTINUE HERE!
+    // }
 
     return {};
 }
@@ -267,6 +278,7 @@ auto BVH::split_node(const SplitNodeInfo & info) -> void
         }
         case SplitType::SPATIAL:
         {
+            // NOTE(msakmary) Don't forget to shrink the primitive aabb of the primtive which is being split and add corresponding second half one
             throw std::runtime_error("[BVH::split_node()] Spatial split not implemented yet");
             return;
         }
@@ -288,12 +300,21 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
         };
     });
 
-
     // Calculate the AABB of the scene -> stored in root node
     const u32 root_node_idx = 0;
     bvh_nodes.emplace_back();
     std::for_each(primitive_aabbs.begin(), primitive_aabbs.end(), [&](const PrimitiveAABB & aabb)
         {bvh_nodes.at(root_node_idx).bounding_box.expand_bounds(aabb.aabb);});
+
+    // ============================== SPATIAL SPLIT TEST ===================================
+    // const f32vec3 primitive_size = primitive_aabbs.at(0).aabb.max_bounds - primitive_aabbs.at(0).aabb.min_bounds;
+    // primitive_aabbs.at(0).aabb.min_bounds -= primitive_size * 0.50f;
+    // primitive_aabbs.at(0).aabb.max_bounds += primitive_size * 0.50f;
+
+    // const f32vec3 node_size = bvh_nodes.at(root_node_idx).bounding_box.max_bounds - bvh_nodes.at(root_node_idx).bounding_box.min_bounds;
+    // bvh_nodes.at(root_node_idx).bounding_box.min_bounds -= node_size * 0.50f;
+    // bvh_nodes.at(root_node_idx).bounding_box.max_bounds += node_size * 0.50f;
+    // =======================================================================================
 
     using ToProcessNode = std::pair<u32, std::vector<PrimitiveAABB>>; 
     std::queue<ToProcessNode> nodes;
@@ -302,8 +323,6 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
     const f32 RAY_PRIMITVE_INTERSECTION_COST = 2.0f;
     const f32 RAY_AABB_INTERSECTION_COST = 3.0f;
 
-
-
     while(!nodes.empty())
     {
         auto & [node_idx, primitive_aabbs] = nodes.front();
@@ -311,7 +330,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
         SplitInfo spatial_split = spatial_best_split({
             .ray_primitive_cost = RAY_PRIMITVE_INTERSECTION_COST,
             .ray_aabb_test_cost = RAY_AABB_INTERSECTION_COST,
-            .bin_count = 4,
+            .bin_count = 256,
             .node_idx = node_idx,
             .primitive_aabbs = primitive_aabbs
         });

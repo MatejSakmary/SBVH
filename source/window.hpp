@@ -12,7 +12,6 @@
 #endif
 #include <GLFW/glfw3native.h>
 #include <daxa/daxa.hpp>
-#include <utility>
 
 #include "types.hpp"
 
@@ -28,15 +27,15 @@ struct WindowVTable
 struct AppWindow
 {
     public:
-        AppWindow(const u32vec2 dimensions, WindowVTable  vtable ) :
-            window(glfwCreateWindow(
-                static_cast<i32>(dimensions.x), static_cast<i32>(dimensions.y),
-                "Atmosphere-daxa", nullptr, nullptr)),
-            dimensions{dimensions}, vtable{std::move(vtable)}
+        AppWindow(const u32vec2 dimensions, const WindowVTable & vtable ) :
+            dimensions{dimensions},
+            vtable{vtable}
         {
             glfwInit();
             /* Tell GLFW to not create OpenGL context */
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+            //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+            window = glfwCreateWindow(dimensions.x, dimensions.y, "Atmosphere-daxa", nullptr, nullptr);
             glfwSetWindowUserPointer(window, &(this->vtable));
             glfwSetCursorPosCallback( 
                 window,
@@ -72,11 +71,11 @@ struct AppWindow
             );
         }
 
-        void set_window_close() { glfwSetWindowShouldClose(window, 1); }
+        void set_window_close() { glfwSetWindowShouldClose(window, true); }
         void set_input_mode(i32 mode, i32 value) { glfwSetInputMode(window, mode, value); }
 
         [[nodiscard]] auto get_key_state(i32 key) const -> i32 { return glfwGetKey(window, key); }
-        [[nodiscard]] auto get_window_should_close() const -> bool { return glfwWindowShouldClose(window) != 0; }
+        [[nodiscard]] auto get_window_should_close() const -> bool { return glfwWindowShouldClose(window); }
 
         [[nodiscard]] auto get_native_handle() const -> daxa::NativeWindowHandle
         {

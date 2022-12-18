@@ -40,6 +40,10 @@ using u32vec2 = glm::uvec2;
 using u32vec3 = glm::uvec3;
 using u32vec4 = glm::uvec4;
 
+using i32vec2 = glm::ivec2;
+using i32vec3 = glm::ivec3;
+using i32vec4 = glm::ivec4;
+
 using f32mat4x4 = glm::mat4x4;
 
 enum Direction

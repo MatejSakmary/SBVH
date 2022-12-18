@@ -37,7 +37,7 @@ struct Application
 
     public:
         Application();
-        ~Application();
+        ~Application() = default;
 
         void main_loop();
 

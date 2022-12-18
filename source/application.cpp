@@ -74,7 +74,6 @@ void Application::key_callback(const i32 key, const i32 code, const i32 action, 
     {
         renderer.reload_scene_data(scene);
     }
-    return;
 }
 
 Application::Application() : 
@@ -91,11 +90,7 @@ Application::Application() :
     }),
     state{ .minimized = 0u },
     renderer{window},
-    scene{"resources/scenes/spatial_test/plane_z_offset.fbx"}
-{
-}
-
-Application::~Application()
+    scene{"resources/scenes/spatial_test/multiple_triangles.fbx"}
 {
 }
 

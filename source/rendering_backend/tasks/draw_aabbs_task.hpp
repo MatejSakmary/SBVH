@@ -75,7 +75,7 @@ inline void task_draw_AABB(RendererContext & context)
         },
         .task = [&](daxa::TaskRuntime const & runtime)
         {
-            if(context.buffers.aabb_info_buffer.cpu_buffer.size() > 0)
+            if(!context.buffers.aabb_info_buffer.cpu_buffer.empty())
             {
                 auto cmd_list = runtime.get_command_list();
                 auto dimensions = context.swapchain.get_surface_extent();
