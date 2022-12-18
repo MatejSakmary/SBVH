@@ -145,7 +145,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
                 project_primitive_into_bin({
                     .triangle = primitive,
                     .splitting_axis = static_cast<Axis>(axis),
-                    .left_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * f32(bin_idx),
+                    .left_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * glm::max(f32(bin_idx), -0.01f),
                     .right_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * f32(bin_idx + 1u),
                     .parent_aabb = parent_aabb,
                     // there are some cases we have to take care of
@@ -308,12 +308,12 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
 
     // ============================== SPATIAL SPLIT TEST ===================================
     // const f32vec3 primitive_size = primitive_aabbs.at(0).aabb.max_bounds - primitive_aabbs.at(0).aabb.min_bounds;
-    // primitive_aabbs.at(0).aabb.min_bounds -= primitive_size * 0.50f;
-    // primitive_aabbs.at(0).aabb.max_bounds += primitive_size * 0.50f;
+    // primitive_aabbs.at(0).aabb.min_bounds.x += primitive_size.x * 0.50f;
+    // primitive_aabbs.at(0).aabb.max_bounds.x -= primitive_size.x * 0.02f;
 
     // const f32vec3 node_size = bvh_nodes.at(root_node_idx).bounding_box.max_bounds - bvh_nodes.at(root_node_idx).bounding_box.min_bounds;
-    // bvh_nodes.at(root_node_idx).bounding_box.min_bounds -= node_size * 0.50f;
-    // bvh_nodes.at(root_node_idx).bounding_box.max_bounds += node_size * 0.50f;
+    // bvh_nodes.at(root_node_idx).bounding_box.min_bounds.x += node_size.x * 0.50f;
+    // bvh_nodes.at(root_node_idx).bounding_box.max_bounds.x -= node_size.x * 0.02f;
     // =======================================================================================
 
     using ToProcessNode = std::pair<u32, std::vector<PrimitiveAABB>>; 
@@ -330,7 +330,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
         SplitInfo spatial_split = spatial_best_split({
             .ray_primitive_cost = RAY_PRIMITVE_INTERSECTION_COST,
             .ray_aabb_test_cost = RAY_AABB_INTERSECTION_COST,
-            .bin_count = 256,
+            .bin_count = 8,
             .node_idx = node_idx,
             .primitive_aabbs = primitive_aabbs
         });

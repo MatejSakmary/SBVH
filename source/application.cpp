@@ -90,7 +90,7 @@ Application::Application() :
     }),
     state{ .minimized = 0u },
     renderer{window},
-    scene{"resources/scenes/spatial_test/multiple_triangles.fbx"}
+    scene{"resources/scenes/spatial_test/triangle.fbx"}
 {
 }
 
