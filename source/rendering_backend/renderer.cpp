@@ -3,8 +3,10 @@
 
 Renderer::Renderer(const AppWindow & window) :
     camera {{.position = {0.0, 0.0, 500.0}, .front = {0.0, 0.0, -1.0}, .up = {0.0, 1.0, 0.0}}},
-    context {.vulkan_context = daxa::create_context({.enable_validation = true})}
+    context {.vulkan_context = daxa::create_context({.enable_validation = true}),
+             .file_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal)}
 {
+    intialize_file_dialog(context.file_dialog);
     context.device = context.vulkan_context.create_device({.debug_name = "Daxa device"});
     context.swapchain = context.device.create_swapchain({ 
         .native_window = window.get_native_handle(),
@@ -239,7 +241,7 @@ void Renderer::draw()
         DEBUG_OUT("[Renderer::draw()] Got empty image from swapchain");
         return;
     }
-    ui_update(camera);
+    ui_update(camera, context);
     context.main_task_list.task_list.execute();
     reload_raster_pipeline(context.pipelines.p_draw_AABB);
     reload_raster_pipeline(context.pipelines.p_draw_scene);

@@ -8,8 +8,15 @@
 
 #include "../camera.hpp"
 #include "../renderer_context.hpp"
+#include "../../external/imgui_file_dialog.hpp"
 
-inline void ui_update(const Camera & camera)
+inline void intialize_file_dialog(ImGui::FileBrowser & file_dialog)
+{
+    file_dialog.SetTitle("Select scene file");
+    file_dialog.SetTypeFilters({ ".fbx", ".obj" });
+}
+
+inline void ui_update(const Camera & camera, RendererContext & context)
 {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -35,10 +42,7 @@ inline void ui_update(const Camera & camera)
     ImGui::End();
 
     ImGui::Begin("Render controls window");
-    if (ImGui::Button("Default Button", {100, 20}))
-    {
-        DEBUG_OUT("BUTTON PRESSED");
-    }
+    if (ImGui::Button("Default Button", {100, 20})) { context.file_dialog.Open(); }
     ImGui::End();
 
     ImGui::Begin("Camera Info");
@@ -46,6 +50,14 @@ inline void ui_update(const Camera & camera)
     ImGui::SameLine();
     ImGui::Text("%s", glm::to_string(camera.get_camera_position()).c_str());
     ImGui::End();
+
+    context.file_dialog.Display();
+
+    if(context.file_dialog.HasSelected())
+    {
+        std::cout << "Selected filename" << context.file_dialog.GetSelected().string() << std::endl;
+        context.file_dialog.ClearSelected();
+    }
 
     ImGui::Render();
 }
