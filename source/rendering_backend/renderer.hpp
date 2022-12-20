@@ -17,14 +17,14 @@
 
 struct Renderer
 {
-    Camera camera;
 
     explicit Renderer(const AppWindow & window);
     ~Renderer();
 
     void resize();
-    void draw();
+    void draw(const Camera & camera);
     void reload_scene_data(const Scene & scene);
+    void reload_bvh_data(const BVH & bvh);
 
     private:
         RendererContext context;

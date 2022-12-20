@@ -1,5 +1,6 @@
 #pragma once
 
+#include "external/imgui_file_dialog.hpp"
 #include "window.hpp"
 #include "types.hpp"
 #include "rendering_backend/renderer.hpp"
@@ -31,6 +32,7 @@ struct Application
         b32 fly_cam = 0u;
         b32 first_input = 1u;
         f32vec2 last_mouse_pos;
+        ImGui::FileBrowser file_browser;
 
         KeyTable key_table;
     };
@@ -45,6 +47,7 @@ struct Application
         AppWindow window;
         AppState state;
         Renderer renderer;
+        Camera camera;
         Scene scene;
 
 
@@ -53,5 +56,8 @@ struct Application
         void mouse_button_callback(const i32 button, const i32 action, const i32 mods);
         void window_resize_callback(const i32 width, const i32 height);
         void key_callback(const i32 key, const i32 code, const i32 action, const i32 mods);
+        void rebuild_bvh(const BuildBVHInfo & info);
+        void reload_scene(const std::string & path);
+        void ui_update();
         void update_app_state();
 };

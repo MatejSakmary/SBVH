@@ -1,12 +1,10 @@
 #include <dlfcn.h>
+#include "camera.hpp"
 #include "renderer.hpp"
 
 Renderer::Renderer(const AppWindow & window) :
-    camera {{.position = {0.0, 0.0, 500.0}, .front = {0.0, 0.0, -1.0}, .up = {0.0, 1.0, 0.0}}},
-    context {.vulkan_context = daxa::create_context({.enable_validation = true}),
-             .file_dialog = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal)}
+    context {.vulkan_context = daxa::create_context({.enable_validation = true})}
 {
-    intialize_file_dialog(context.file_dialog);
     context.device = context.vulkan_context.create_device({.debug_name = "Daxa device"});
     context.swapchain = context.device.create_swapchain({ 
         .native_window = window.get_native_handle(),
@@ -163,7 +161,7 @@ void Renderer::resize()
 {
     context.swapchain.resize();
     // TODO(msakmary) move this into create resolution dependent resources function...
-    if(!context.depth_image.is_empty())
+    if(context.device.is_id_valid((context.depth_image)))
     {
         context.main_task_list.task_list.remove_runtime_image(
             context.main_task_list.images.t_depth_image, context.depth_image);
@@ -180,7 +178,7 @@ void Renderer::resize()
     context.main_task_list.task_list.add_runtime_image(context.main_task_list.images.t_depth_image, context.depth_image);
 }
 
-void Renderer::draw()
+void Renderer::draw(const Camera & camera)
 {
     auto reload_raster_pipeline = [this](daxa::RasterPipeline & pipeline) -> bool
     {
@@ -236,20 +234,46 @@ void Renderer::draw()
         context.main_task_list.images.t_swapchain_image,
         context.swapchain_image);
 
-    if(context.swapchain_image.is_empty()) 
+    if(!context.device.is_id_valid(context.swapchain_image))
     {
         DEBUG_OUT("[Renderer::draw()] Got empty image from swapchain");
         return;
     }
-    ui_update(camera, context);
     context.main_task_list.task_list.execute();
     reload_raster_pipeline(context.pipelines.p_draw_AABB);
     reload_raster_pipeline(context.pipelines.p_draw_scene);
 }
 
+void Renderer::reload_bvh_data(const BVH & bvh)
+{
+    if(context.device.is_id_valid(context.buffers.aabb_info_buffer.gpu_buffer))
+    {
+        context.main_task_list.task_list.remove_runtime_buffer(
+            context.main_task_list.buffers.t_aabb_infos,
+            context.buffers.aabb_info_buffer.gpu_buffer);
+
+        context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
+        context.buffers.aabb_info_buffer.cpu_buffer.clear();
+    }
+    context.buffers.aabb_info_buffer.cpu_buffer = bvh.get_bvh_visualization_data();
+    if(context.buffers.aabb_info_buffer.cpu_buffer.empty()) { return; }
+
+    context.buffers.aabb_info_buffer.gpu_buffer = context.device.create_buffer({
+        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
+        .size = static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()),
+        .debug_name = "aabb_infos"
+    });
+
+    context.main_task_list.task_list.add_runtime_buffer(
+        context.main_task_list.buffers.t_aabb_infos,
+        context.buffers.aabb_info_buffer.gpu_buffer);
+
+    context.conditionals.fill_aabbs = static_cast<u32>(true);
+}
+
 void Renderer::reload_scene_data(const Scene & scene)
 {
-    if(!context.buffers.scene_vertices.gpu_buffer.is_empty())
+    if(context.device.is_id_valid(context.buffers.scene_vertices.gpu_buffer))
     {
         context.main_task_list.task_list.remove_runtime_buffer(
             context.main_task_list.buffers.t_scene_vertices,
@@ -258,7 +282,7 @@ void Renderer::reload_scene_data(const Scene & scene)
         context.device.destroy_buffer(context.buffers.scene_vertices.gpu_buffer);
         context.buffers.scene_vertices.cpu_buffer.clear();
     }
-    if(!context.buffers.scene_indices.gpu_buffer.is_empty())
+    if(context.device.is_id_valid(context.buffers.scene_indices.gpu_buffer))
     {
         context.main_task_list.task_list.remove_runtime_buffer(
             context.main_task_list.buffers.t_scene_indices,
@@ -266,15 +290,6 @@ void Renderer::reload_scene_data(const Scene & scene)
 
         context.device.destroy_buffer(context.buffers.scene_indices.gpu_buffer);
         context.buffers.scene_indices.cpu_buffer.clear();
-    }
-    if(!context.buffers.aabb_info_buffer.gpu_buffer.is_empty())
-    {
-        context.main_task_list.task_list.remove_runtime_buffer(
-            context.main_task_list.buffers.t_aabb_infos,
-            context.buffers.aabb_info_buffer.gpu_buffer);
-
-        context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
-        context.buffers.aabb_info_buffer.cpu_buffer.clear();
     }
 
     context.render_info.objects.clear();
@@ -290,7 +305,6 @@ void Renderer::reload_scene_data(const Scene & scene)
 
         for(auto scene_runtime_mesh : scene_runtime_object.meshes)
         {
-            
             object.meshes.push_back({
                 .index_buffer_offset = static_cast<u32>(scene_index_cnt),
                 .index_offset = static_cast<u32>(scene_vertex_cnt),
@@ -311,8 +325,6 @@ void Renderer::reload_scene_data(const Scene & scene)
             scene_index_cnt += scene_runtime_mesh.indices.size();
         }
     }
-
-    context.buffers.aabb_info_buffer.cpu_buffer = scene.raytracing_scene.bvh.get_bvh_visualization_data();
 
     context.buffers.scene_vertices.gpu_buffer = context.device.create_buffer({
         .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
@@ -335,19 +347,7 @@ void Renderer::reload_scene_data(const Scene & scene)
         context.main_task_list.buffers.t_scene_indices,
         context.buffers.scene_indices.gpu_buffer);
 
-
-    context.buffers.aabb_info_buffer.gpu_buffer = context.device.create_buffer({
-        .memory_flags = daxa::MemoryFlagBits::DEDICATED_MEMORY,
-        .size = static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()),
-        .debug_name = "aabb_infos"
-    });
-
-    context.main_task_list.task_list.add_runtime_buffer(
-        context.main_task_list.buffers.t_aabb_infos,
-        context.buffers.aabb_info_buffer.gpu_buffer);
-
     context.conditionals.fill_scene_geometry = static_cast<u32>(true);
-    context.conditionals.fill_aabbs = static_cast<u32>(true);
     DEBUG_OUT("[Renderer::reload_scene_data()] scene reload successfull");
 }
 
@@ -359,11 +359,11 @@ Renderer::~Renderer()
     context.device.destroy_buffer(context.buffers.index_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.transforms_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
-    if(!context.buffers.scene_vertices.gpu_buffer.is_empty())
+    if(context.device.is_id_valid(context.buffers.scene_vertices.gpu_buffer))
     {
         context.device.destroy_buffer(context.buffers.scene_vertices.gpu_buffer);
     }
-    if(!context.buffers.scene_indices.gpu_buffer.is_empty())
+    if(context.device.is_id_valid(context.buffers.scene_indices.gpu_buffer))
     {
         context.device.destroy_buffer(context.buffers.scene_indices.gpu_buffer);
     }

@@ -6,8 +6,9 @@
 #include <daxa/utils/imgui.hpp>
 
 #include "shared/draw_aabb_shared.inl"
-#include "../external/imgui_file_dialog.hpp"
 #include "../types.hpp"
+#include "../external/imgui_file_dialog.hpp"
+#include "../raytracing_backend/scene.hpp"
 
 struct RendererContext
 {
@@ -89,8 +90,8 @@ struct RendererContext
 
     daxa::ImageId swapchain_image;
     daxa::ImageId depth_image;
+
     daxa::ImGuiRenderer imgui_renderer;
-    ImGui::FileBrowser file_dialog;
 
     Buffers buffers;
     MainTaskList main_task_list;

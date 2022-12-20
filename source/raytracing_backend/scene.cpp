@@ -131,5 +131,9 @@ Scene::Scene(const std::string & scene_path)
     }
 
     process_scene(scene);
+}
+
+void Scene::build_bvh(const BuildBVHInfo & info)
+{
     raytracing_scene.bvh.construct_bvh_from_data(raytracing_scene.primitives);
 }

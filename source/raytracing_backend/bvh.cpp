@@ -378,9 +378,9 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
 auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
 {
 
-
     std::vector<AABBGeometryInfo> info;
     info.reserve(bvh_nodes.size());
+    if(bvh_nodes.empty()) {return info;}
 
     const auto & root_node = bvh_nodes.at(0);
     using Node = std::pair<u32, const BVHNode &>;  

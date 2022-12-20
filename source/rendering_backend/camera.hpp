@@ -17,7 +17,7 @@ struct Camera
     void move_camera(f32 delta_time, Direction direction);
     void update_front_vector(f32 x_offset, f32 y_offset);
     [[nodiscard]] auto get_camera_position() const -> f32vec3;
-    [[nodiscard]] auto get_view_matrix() -> f32mat4x4;
+    [[nodiscard]] auto get_view_matrix() const -> f32mat4x4;
 
     private:
         f32vec3 position;

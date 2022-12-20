@@ -60,7 +60,7 @@ void Camera::update_front_vector(f32 x_offset, f32 y_offset)
     front = front_;
 }
 
-auto Camera::get_view_matrix() -> f32mat4x4
+auto Camera::get_view_matrix() const -> f32mat4x4
 {
     return glm::lookAt(position, position + front, up);
 }

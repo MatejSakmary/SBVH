@@ -1,6 +1,7 @@
 #include "application.hpp"
 #include <bit>
 
+#include "raytracing_backend/scene.hpp"
 #include "utils.hpp"
 
 void Application::mouse_callback(const f64 x, const f64 y)
@@ -20,7 +21,7 @@ void Application::mouse_callback(const f64 x, const f64 y)
     if(state.fly_cam)
     {
         state.last_mouse_pos = {x, y};
-        renderer.camera.update_front_vector(x_offset, y_offset);
+        camera.update_front_vector(x_offset, y_offset);
     }
 }
 
@@ -69,11 +70,53 @@ void Application::key_callback(const i32 key, const i32 code, const i32 action, 
             window.set_input_mode(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
     }
+}
 
-    if(key == GLFW_KEY_R && action == GLFW_PRESS)
+void Application::ui_update()
+{
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
+    ImGuiWindowFlags window_flags = 
+        ImGuiWindowFlags_NoDocking  | ImGuiWindowFlags_NoBackground |
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse   |
+        ImGuiWindowFlags_NoResize   | ImGuiWindowFlags_NoMove       |
+        ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBringToFrontOnFocus;
+    const ImGuiViewport *viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+
+    ImGui::Begin("DockSpace Demo", nullptr, window_flags);
+    ImGui::PopStyleVar(3);
+    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+    ImGui::End();
+
+    ImGui::Begin("Render controls window");
+    if (ImGui::Button("Reload Scene", {100, 20})) { state.file_browser.Open(); }
+    if (ImGui::Button("Rebuild BVH", {100, 20})) { rebuild_bvh({}); }
+    ImGui::End();
+
+    ImGui::Begin("Camera Info");
+    ImGui::Text("Camera position is: ");
+    ImGui::SameLine();
+    ImGui::Text("%s", glm::to_string(camera.get_camera_position()).c_str());
+    ImGui::End();
+
+    state.file_browser.Display();
+
+    if(state.file_browser.HasSelected())
     {
-        renderer.reload_scene_data(scene);
+        reload_scene(state.file_browser.GetSelected().string());
+        state.file_browser.ClearSelected();
     }
+
+    ImGui::Render();
 }
 
 Application::Application() : 
@@ -88,10 +131,29 @@ Application::Application() :
         .window_resized_callback = [this](const i32 width, const i32 height)
             {this->window_resize_callback(width, height);},
     }),
-    state{ .minimized = 0u },
+    state{ 
+        .minimized = 0u,
+        .file_browser = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal)
+    },
     renderer{window},
+    camera {{.position = {0.0, 0.0, 500.0}, .front = {0.0, 0.0, -1.0}, .up = {0.0, 1.0, 0.0}}},
     scene{"resources/scenes/cubes/cubes.fbx"}
 {
+    state.file_browser.SetTitle("Select scene file");
+    state.file_browser.SetTypeFilters({ ".fbx", ".obj" });
+}
+
+void Application::reload_scene(const std::string & path)
+{
+    scene = Scene(path);
+    renderer.reload_scene_data(scene);
+    renderer.reload_bvh_data(scene.raytracing_scene.bvh);
+}
+
+void Application::rebuild_bvh(const BuildBVHInfo & info)
+{
+    scene.build_bvh(info);
+    renderer.reload_bvh_data(scene.raytracing_scene.bvh);
 }
 
 void Application::update_app_state()
@@ -102,14 +164,14 @@ void Application::update_app_state()
 
     if(state.key_table.data > 0)
     {
-        if(state.key_table.bits.W)      { renderer.camera.move_camera(state.delta_time, Direction::FORWARD);    }
-        if(state.key_table.bits.A)      { renderer.camera.move_camera(state.delta_time, Direction::LEFT);       }
-        if(state.key_table.bits.S)      { renderer.camera.move_camera(state.delta_time, Direction::BACK);       }
-        if(state.key_table.bits.D)      { renderer.camera.move_camera(state.delta_time, Direction::RIGHT);      }
-        if(state.key_table.bits.Q)      { renderer.camera.move_camera(state.delta_time, Direction::ROLL_LEFT);  }
-        if(state.key_table.bits.E)      { renderer.camera.move_camera(state.delta_time, Direction::ROLL_RIGHT); }
-        if(state.key_table.bits.CTRL)   { renderer.camera.move_camera(state.delta_time, Direction::DOWN);       }
-        if(state.key_table.bits.SPACE)  { renderer.camera.move_camera(state.delta_time, Direction::UP);         }
+        if(state.key_table.bits.W)      { camera.move_camera(state.delta_time, Direction::FORWARD);    }
+        if(state.key_table.bits.A)      { camera.move_camera(state.delta_time, Direction::LEFT);       }
+        if(state.key_table.bits.S)      { camera.move_camera(state.delta_time, Direction::BACK);       }
+        if(state.key_table.bits.D)      { camera.move_camera(state.delta_time, Direction::RIGHT);      }
+        if(state.key_table.bits.Q)      { camera.move_camera(state.delta_time, Direction::ROLL_LEFT);  }
+        if(state.key_table.bits.E)      { camera.move_camera(state.delta_time, Direction::ROLL_RIGHT); }
+        if(state.key_table.bits.CTRL)   { camera.move_camera(state.delta_time, Direction::DOWN);       }
+        if(state.key_table.bits.SPACE)  { camera.move_camera(state.delta_time, Direction::UP);         }
     }
 }
 
@@ -119,8 +181,9 @@ void Application::main_loop()
     {
         glfwPollEvents();
         update_app_state();
+        ui_update();
 
         if (state.minimized != 0u) { DEBUG_OUT("[Application::main_loop()] Window minimized "); continue; } 
-        renderer.draw();
+        renderer.draw(camera);
     }
 }
