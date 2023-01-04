@@ -2,20 +2,21 @@
 
 #include <daxa/daxa.hpp>
 #include <daxa/utils/task_list.hpp>
+#include <daxa/utils/pipeline_manager.hpp>
 
 #include "../../types.hpp"
 #include "../renderer_context.hpp"
 #include "../shared/draw_aabb_shared.inl"
 
-inline static const daxa::RasterPipelineInfo DRAW_AABB_TASK_RASTER_PIPE_INFO 
+inline static const daxa::RasterPipelineCompileInfo DRAW_AABB_TASK_RASTER_PIPE_INFO 
 {
-    .vertex_shader_info = daxa::ShaderInfo{
+    .vertex_shader_info = {
         .source = daxa::ShaderFile{"aabb.glsl"},
         .compile_options = {
             .defines = {{"_VERTEX", ""}},
         },
     },
-    .fragment_shader_info = daxa::ShaderInfo{
+    .fragment_shader_info = {
         .source = daxa::ShaderFile{"aabb.glsl"},
         .compile_options = {
             .defines = {{"_FRAGMENT", ""}},
@@ -101,7 +102,7 @@ inline void task_draw_AABB(RendererContext & context)
                 });
 
                 auto m_model = glm::mat4x4(1.0f);
-                cmd_list.set_pipeline(context.pipelines.p_draw_AABB);
+                cmd_list.set_pipeline(*context.pipelines.p_draw_AABB);
                 cmd_list.push_constant(AABBDrawPC{
                     .transforms = context.device.get_device_address(transforms_buffer[0]),
                     .aabb_transforms = context.device.get_device_address(aabbs_buffer[0]),

@@ -10,15 +10,15 @@
 #include "../renderer_context.hpp"
 #include "../shared/draw_aabb_shared.inl"
 
-inline static const daxa::RasterPipelineInfo DRAW_SCENE_TASK_RASTER_PIPE_INFO 
+inline static const daxa::RasterPipelineCompileInfo DRAW_SCENE_TASK_RASTER_PIPE_INFO 
 {
-    .vertex_shader_info = daxa::ShaderInfo{
+    .vertex_shader_info = {
         .source = daxa::ShaderFile{"scene.glsl"},
         .compile_options = {
             .defines = {{"_VERTEX", ""}},
         },
     },
-    .fragment_shader_info = daxa::ShaderInfo{
+    .fragment_shader_info = {
         .source = daxa::ShaderFile{"scene.glsl"},
         .compile_options = {
             .defines = {{"_FRAGMENT", ""}},
@@ -103,7 +103,7 @@ inline void task_draw_scene(RendererContext & context)
                 .render_area = {.x = 0, .y = 0, .width = dimensions.x , .height = dimensions.y}
             });
 
-            cmd_list.set_pipeline(context.pipelines.p_draw_scene);
+            cmd_list.set_pipeline(*context.pipelines.p_draw_scene);
 
             // NOTE(msakmary) I can't put const auto & object here since than the span constructor complains
             // and I don't know how to fig this

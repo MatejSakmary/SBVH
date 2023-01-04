@@ -53,8 +53,8 @@ struct RendererContext
 
     struct Pipelines
     {
-        daxa::RasterPipeline p_draw_AABB;
-        daxa::RasterPipeline p_draw_scene;
+        std::shared_ptr<daxa::RasterPipeline> p_draw_AABB;
+        std::shared_ptr<daxa::RasterPipeline> p_draw_scene;
     };
 
     struct Conditionals
@@ -86,7 +86,7 @@ struct RendererContext
     daxa::Context vulkan_context;
     daxa::Device device;
     daxa::Swapchain swapchain;
-    daxa::PipelineCompiler pipeline_compiler;
+    daxa::PipelineManager pipeline_manager;
 
     daxa::ImageId swapchain_image;
     daxa::ImageId depth_image;

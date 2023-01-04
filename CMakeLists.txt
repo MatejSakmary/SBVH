@@ -22,7 +22,7 @@ target_link_libraries(${PROJECT_NAME}
     glm::glm
     imgui::imgui
     daxa::daxa
-    assimp
+    assimp::assimp
     glfw
 )
 # define LOG_DEBUG whenever building in DEBUG mode

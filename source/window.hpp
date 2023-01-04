@@ -2,14 +2,15 @@
 
 #include <functional>
 
-#include <GLFW/glfw3.h>
 #if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_NATIVE_INCLUDE_NONE
-#define WIN32_LEAN_AND_MEAN
 #elif defined(__linux__)
 #define GLFW_EXPOSE_NATIVE_X11
 #endif
+#include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 #include <daxa/daxa.hpp>
 

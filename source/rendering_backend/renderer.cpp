@@ -1,6 +1,5 @@
-#include <dlfcn.h>
-#include "camera.hpp"
 #include "renderer.hpp"
+#include "camera.hpp"
 
 Renderer::Renderer(const AppWindow & window) :
     context {.vulkan_context = daxa::create_context({.enable_validation = true})}
@@ -14,7 +13,8 @@ Renderer::Renderer(const AppWindow & window) :
         .debug_name = "Swapchain",
     });
 
-    context.pipeline_compiler = context.device.create_pipeline_compiler({
+    context.pipeline_manager = daxa::PipelineManager({
+        .device = context.device,
         .shader_compile_options = {
             .root_paths = { DAXA_SHADER_INCLUDE_DIR, "source/rendering_backend", "source/rendering_backend/shaders",},
             .language = daxa::ShaderLanguage::GLSL,
@@ -22,8 +22,8 @@ Renderer::Renderer(const AppWindow & window) :
         .debug_name = "Pipeline Compiler",
     });
 
-    context.pipelines.p_draw_AABB = context.pipeline_compiler.create_raster_pipeline(DRAW_AABB_TASK_RASTER_PIPE_INFO).value();
-    context.pipelines.p_draw_scene = context.pipeline_compiler.create_raster_pipeline(DRAW_SCENE_TASK_RASTER_PIPE_INFO).value();
+    context.pipelines.p_draw_AABB = context.pipeline_manager.add_raster_pipeline(DRAW_AABB_TASK_RASTER_PIPE_INFO).value();
+    context.pipelines.p_draw_scene = context.pipeline_manager.add_raster_pipeline(DRAW_SCENE_TASK_RASTER_PIPE_INFO).value();
 
     // TODO(msakmary) move this into create resolution dependent resources function...
     auto extent = context.swapchain.get_surface_extent();
@@ -58,7 +58,6 @@ Renderer::Renderer(const AppWindow & window) :
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     context.imgui_renderer = daxa::ImGuiRenderer({
         .device = context.device,
-        .pipeline_compiler = context.pipeline_compiler,
         .format = context.swapchain.get_format(),
     });
     create_main_task();
@@ -180,35 +179,6 @@ void Renderer::resize()
 
 void Renderer::draw(const Camera & camera)
 {
-    auto reload_raster_pipeline = [this](daxa::RasterPipeline & pipeline) -> bool
-    {
-        if (context.pipeline_compiler.check_if_sources_changed(pipeline))
-        {
-            auto new_pipeline = context.pipeline_compiler.recreate_raster_pipeline(pipeline);
-            DEBUG_OUT(new_pipeline.to_string());
-            if (new_pipeline.is_ok())
-            {
-                pipeline = new_pipeline.value();
-                return true;
-            }
-        }
-        return false;
-    };
-    auto reload_compute_pipeline = [this](daxa::ComputePipeline & pipeline) -> bool
-    {
-        if (context.pipeline_compiler.check_if_sources_changed(pipeline))
-        {
-            auto new_pipeline = context.pipeline_compiler.recreate_compute_pipeline(pipeline);
-            DEBUG_OUT(new_pipeline.to_string());
-            if (new_pipeline.is_ok())
-            {
-                pipeline = new_pipeline.value();
-                return true;
-            }
-        }
-        return false;
-    };
-
     // ==============  TODO(msakmary) move this somewhere where it belongs ==================
     f32 aspect = f32(context.swapchain.get_surface_extent().x) / f32(context.swapchain.get_surface_extent().y);
     f32mat4x4 m_proj = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 5000.0f);
@@ -240,8 +210,15 @@ void Renderer::draw(const Camera & camera)
         return;
     }
     context.main_task_list.task_list.execute();
-    reload_raster_pipeline(context.pipelines.p_draw_AABB);
-    reload_raster_pipeline(context.pipelines.p_draw_scene);
+
+    auto result = context.pipeline_manager.reload_all(); // returns Result<bool>
+    // if the result has a value, it suceeded. If the value is true, it reloaded shaders
+    if (result.is_ok()) {
+        if (result.value() != true)
+        {
+            std::cout << result.to_string() << std::endl;
+        }
+    }
 }
 
 void Renderer::reload_bvh_data(const BVH & bvh)

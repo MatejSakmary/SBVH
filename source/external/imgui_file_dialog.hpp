@@ -947,6 +947,7 @@ inline std::string ImGui::FileBrowser::u8StrToStr(std::string s)
 
 #endif // #ifndef WIN32_LEAN_AND_MEAN
 
+#define NOMINMAX
 #include <windows.h>
 
 #ifdef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN

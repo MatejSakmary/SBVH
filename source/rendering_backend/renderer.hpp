@@ -3,6 +3,7 @@
 #include <daxa/daxa.hpp>
 #include <daxa/utils/task_list.hpp>
 #include <daxa/utils/imgui.hpp>
+#include <daxa/utils/pipeline_manager.hpp>
 
 #include "../utils.hpp"
 #include "camera.hpp"
