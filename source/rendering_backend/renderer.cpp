@@ -213,12 +213,15 @@ void Renderer::draw(const Camera & camera)
 
     auto result = context.pipeline_manager.reload_all(); // returns Result<bool>
     // if the result has a value, it suceeded. If the value is true, it reloaded shaders
-    if (result.is_ok()) {
-        if (result.value() != true)
+    if(result.is_ok()) {
+        if (result.value() == true)
         {
-            std::cout << result.to_string() << std::endl;
+            std::cout << "[Renderer::draw()] Shaders recompiled successfully" << std::endl;
         }
+    } else {
+        std::cout << result.to_string() << std::endl;
     }
+
 }
 
 void Renderer::reload_bvh_data(const BVH & bvh)

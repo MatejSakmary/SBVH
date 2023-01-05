@@ -107,22 +107,16 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
         std::vector<AABB>(info.bin_count),
         std::vector<AABB>(info.bin_count)};
     
-    // used to offset max and min bounds of the primitive aabb in order to get correct start and end indices
-    // in case parent aabb perfectly alligns with the primitive aabb
-    const f32vec3 OFFSET = f32vec3(0.001f) * bin_size;
     // project references into bins
     for(const auto & primitive_aabb : info.primitive_aabbs)
     {
         const auto & primitive = *primitive_aabb.primitive;
 
-        i32vec3 start_bin_idx = glm::trunc(((primitive_aabb.aabb.min_bounds + OFFSET) - parent_aabb.min_bounds) / bin_size);
-        i32vec3 end_bin_idx = glm::trunc(((primitive_aabb.aabb.max_bounds - OFFSET) - parent_aabb.min_bounds) / bin_size);
+        i32vec3 start_bin_idx = glm::trunc(((primitive_aabb.aabb.min_bounds) - parent_aabb.min_bounds) / bin_size);
+        i32vec3 end_bin_idx = glm::trunc(((primitive_aabb.aabb.max_bounds) - parent_aabb.min_bounds) / bin_size);
         // start_bin_idx and end_bin_idx should be value in the range [0, bin_count - 1]
-        assert(glm::all(glm::greaterThanEqual(start_bin_idx, i32vec3(0))) &&
-               glm::all(glm::lessThan(start_bin_idx, i32vec3(info.bin_count))));
-
-        assert(glm::all(glm::greaterThanEqual(end_bin_idx, i32vec3(0))) &&
-               glm::all(glm::lessThan(end_bin_idx, i32vec3(info.bin_count))));
+        start_bin_idx = glm::clamp(start_bin_idx, i32vec3(0), i32vec3(info.bin_count - 1));
+        end_bin_idx = glm::clamp(end_bin_idx, i32vec3(0), i32vec3(info.bin_count - 1));
 
         for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
         {
@@ -330,7 +324,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives) -> v
         SplitInfo spatial_split = spatial_best_split({
             .ray_primitive_cost = RAY_PRIMITVE_INTERSECTION_COST,
             .ray_aabb_test_cost = RAY_AABB_INTERSECTION_COST,
-            .bin_count = 8,
+            .bin_count = 64,
             .node_idx = node_idx,
             .primitive_aabbs = primitive_aabbs
         });
