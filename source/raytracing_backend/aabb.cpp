@@ -39,6 +39,7 @@ auto AABB::expand_bounds(const AABB & aabb) -> void
 
 auto AABB::get_area() const -> f32
 {
+    if(max_bounds == f32vec3(-INFINITY) || min_bounds == f32vec3(INFINITY)) { return 0.0f; }
     f32vec3 sizes = max_bounds - min_bounds;
     return  2 * sizes.x * sizes.y + 2 * sizes.y * sizes.z + 2 * sizes.z * sizes.x ;
 }

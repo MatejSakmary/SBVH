@@ -176,7 +176,6 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
         }
 
         AABB right_sweep_aabb;
-        f32 right_sweep_aabb_area = 0;
         u32 right_sweep_bin_primitives = 0;
         // The stopping condition is not >= 0 because that would just result in the left bin being empty
         // and the right bin being the entire child. This, however is the same as the left bin being 
@@ -188,7 +187,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
                 .left_primitive_count = left_sweep_bin_primitives.at(bin),
                 .right_primitive_count = right_sweep_bin_primitives,
                 .left_aabb_area = left_sweep_aabbs.at(bin).get_area(),
-                .right_aabb_area = right_sweep_aabb_area,
+                .right_aabb_area = right_sweep_aabb.get_area(),
                 .parent_aabb_area = parent_node.bounding_box.get_area(),
                 .ray_aabb_test_cost = info.ray_aabb_test_cost,
                 .ray_tri_test_cost = info.ray_primitive_cost
@@ -204,7 +203,6 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo
             }
 
             right_sweep_aabb.expand_bounds(bin_aabbs.at(axis).at(bin));
-            right_sweep_aabb_area = right_sweep_aabb.get_area();
             right_sweep_bin_primitives += bin_counters.at(axis).at(bin).at(END_BIN_IDX);
         }
     }
@@ -244,20 +242,26 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
         AABB left_sweep_aabb;
         for(size_t i = 0; i < primitive_aabbs.size(); i++)
         {
-            left_sweep_aabb.expand_bounds(primitive_aabbs.at(i).aabb);
             left_sweep_aabbs.at(i) = left_sweep_aabb;
+            left_sweep_aabb.expand_bounds(primitive_aabbs.at(i).aabb);
         }
 
         // right sweep
         AABB right_sweep_aabb;
         for(i32 i = i32(primitive_aabbs.size() - 1); i >= 0 ; i--)
         {
+            // expand bounds first since in the left sweep we expanded bounds *after* getting the AABB
+            //   - this results in the left having empty AABB in the 0th element, and AABB containing 
+            //     everything except the last primitive in the last element. This means we have to start
+            //     the right loop by expanding the right AABB to contain the last primtive. This is guaranteed
+            //     to check all the possible combinations as having left AABB contain all of the primitives
+            //     is equivalent with the right AABB containing all of the primitive  
             right_sweep_aabb.expand_bounds(primitive_aabbs.at(i).aabb);
+
             f32 cost = SAH({
-                .left_primitive_count = i,
-                .right_primitive_count = primitive_aabbs.size() - i,
-                // TODO(msakmary) fix this
-                .left_aabb_area = i == 0 ? 0 : left_sweep_aabbs.at(i - 1).get_area(),
+                .left_primitive_count = static_cast<u32>(i),
+                .right_primitive_count = static_cast<u32>(primitive_aabbs.size() - i),
+                .left_aabb_area = left_sweep_aabbs.at(i).get_area(),
                 .right_aabb_area = right_sweep_aabb.get_area(),
                 .parent_aabb_area = bvh_nodes.at(info.node_idx).bounding_box.get_area(),
                 .ray_aabb_test_cost = info.ray_aabb_test_cost,
@@ -268,8 +272,7 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo
                 best_cost = cost;
                 best_event = i;
                 best_axis = static_cast<Axis>(axis);
-                // TODO(msakmary) FIX THIS!!
-                left_bounding_box = left_sweep_aabbs.at(i - 1);
+                left_bounding_box = left_sweep_aabbs.at(i);
                 right_bounding_box = right_sweep_aabb;
             }
         }
@@ -328,6 +331,9 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             std::vector<PrimitiveAABB> right_primitive_aabbs;
             left_primitive_aabbs.reserve(info.split.event);
             right_primitive_aabbs.reserve(info.primitive_aabbs.size() - info.split.event);
+            // copy primtives so that:  left <= [begin, split_event) ; [split_event, end) => right
+            //   - this is correct because when finding the object split we store the best event *after* expanding the right AABB,
+            //     so the event must belong to the right aabb not the left (event being the splitting primitive)
             std::copy(info.primitive_aabbs.begin(), info.primitive_aabbs.begin() + info.split.event, std::back_inserter(left_primitive_aabbs));
             std::copy(info.primitive_aabbs.begin() + info.split.event, info.primitive_aabbs.end(), std::back_inserter(right_primitive_aabbs));
             return {left_primitive_aabbs, right_primitive_aabbs};
