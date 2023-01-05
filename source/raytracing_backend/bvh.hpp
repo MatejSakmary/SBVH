@@ -40,11 +40,12 @@ struct BVHNode
     i32 right_index{};
 };
 
-struct SplitInfo
+struct BestSplitInfo
 {
     Axis axis;
     SplitType type;
-    i32 event;
+    // either the index of an object or axis coord of the splitting plane in world space
+    std::variant<i32,f32> event;
     f32 cost;
     AABB left_bounding_box;
     AABB right_bounding_box;
@@ -69,9 +70,11 @@ struct SpatialSplitInfo
 
 struct SplitNodeInfo
 {
-    const SplitInfo & split;
+    const BestSplitInfo & split;
     std::vector<PrimitiveAABB> & primitive_aabbs;
     const u32 node_idx;
+    const f32 ray_primitive_intersection_cost;
+    const f32 ray_aabb_intersection_cost;
 };
 
 struct ProjectPrimitiveInfo
@@ -103,8 +106,8 @@ struct BVH
     private:
         using SplitPrimitives = std::pair<std::vector<PrimitiveAABB>,std::vector<PrimitiveAABB>>;
 
-        auto SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo;
-        auto spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo;
+        auto SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInfo;
+        auto spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo;
         auto split_node(const SplitNodeInfo & info) -> SplitPrimitives;
         std::vector<BVHNode> bvh_nodes;
 };
