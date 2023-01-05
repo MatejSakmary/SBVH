@@ -42,3 +42,6 @@ build/*
 *.conf
 *.obj.*
 *.view
+
+#imgui
+*.ini

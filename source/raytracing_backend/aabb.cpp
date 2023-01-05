@@ -40,5 +40,27 @@ auto AABB::expand_bounds(const AABB & aabb) -> void
 auto AABB::get_area() const -> f32
 {
     f32vec3 sizes = max_bounds - min_bounds;
-    return { 2 * sizes.x * sizes.y + 2 * sizes.y * sizes.z + 2 * sizes.z * sizes.x };
+    return  2 * sizes.x * sizes.y + 2 * sizes.y * sizes.z + 2 * sizes.z * sizes.x ;
+}
+
+auto do_aabbs_intersect(const AABB & first, const AABB & second) -> bool
+{
+    if (first.min_bounds.x > second.max_bounds.x ||
+        first.max_bounds.x < second.min_bounds.x ||
+        first.min_bounds.y > second.max_bounds.y ||
+        first.max_bounds.y < second.min_bounds.y ||
+        first.min_bounds.z > second.max_bounds.z ||
+        first.max_bounds.z < second.min_bounds.z)
+    {
+        return false;
+    }
+    return true;
+}
+
+auto get_intersection_aabb(const AABB & first, const AABB & second) -> AABB
+{
+    return AABB(
+        {component_wise_max(first.min_bounds, second.min_bounds)},
+        {component_wise_min(first.max_bounds, second.max_bounds)}
+    );
 }

@@ -8,8 +8,8 @@
 
 struct SAHCalculateInfo
 {
-    f32 left_primitive_count;
-    f32 right_primitive_count;
+    u32 left_primitive_count;
+    u32 right_primitive_count;
     f32 left_aabb_area;
     f32 right_aabb_area;
     f32 parent_aabb_area;
@@ -46,8 +46,8 @@ struct SplitInfo
     SplitType type;
     i32 event;
     f32 cost;
-    const AABB left_bounding_box;
-    const AABB right_bounding_box;
+    AABB left_bounding_box;
+    AABB right_bounding_box;
 };
 
 struct SAHGreedySplitInfo
@@ -85,16 +85,26 @@ struct ProjectPrimitiveInfo
     AABB & right_aabb;
 };
 
+struct ConstructBVHInfo
+{
+    f32 ray_primitive_intersection_cost;
+    f32 ray_aabb_intersection_cost;
+    u32 spatial_bin_count;
+    f32 spatial_alpha;
+};
+
 struct BVH
 {
     static auto project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void;
     [[nodiscard]] auto get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>;
 
-    auto construct_bvh_from_data(const std::vector<Triangle> & primitives) -> void;
-    auto SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo;
-    auto spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo;
-    auto split_node(const SplitNodeInfo & info) -> void;
+    auto construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> void;
 
     private:
+        using SplitPrimitives = std::pair<std::vector<PrimitiveAABB>,std::vector<PrimitiveAABB>>;
+
+        auto SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> SplitInfo;
+        auto spatial_best_split(const SpatialSplitInfo & info) -> SplitInfo;
+        auto split_node(const SplitNodeInfo & info) -> SplitPrimitives;
         std::vector<BVHNode> bvh_nodes;
 };

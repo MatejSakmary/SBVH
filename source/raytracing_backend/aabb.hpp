@@ -27,3 +27,6 @@ struct AABB
         return (min_bounds[axis] + max_bounds[axis]) / 2.0f;
     }
 };
+
+auto do_aabbs_intersect(const AABB & first, const AABB & second) -> bool;
+auto get_intersection_aabb(const AABB & first, const AABB & second) -> AABB;
