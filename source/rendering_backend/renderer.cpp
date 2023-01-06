@@ -338,7 +338,10 @@ Renderer::~Renderer()
     context.device.destroy_image(context.depth_image);
     context.device.destroy_buffer(context.buffers.index_buffer.gpu_buffer);
     context.device.destroy_buffer(context.buffers.transforms_buffer.gpu_buffer);
-    context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
+    if(context.device.is_id_valid(context.buffers.aabb_info_buffer.gpu_buffer))
+    {
+        context.device.destroy_buffer(context.buffers.aabb_info_buffer.gpu_buffer);
+    }
     if(context.device.is_id_valid(context.buffers.scene_vertices.gpu_buffer))
     {
         context.device.destroy_buffer(context.buffers.scene_vertices.gpu_buffer);

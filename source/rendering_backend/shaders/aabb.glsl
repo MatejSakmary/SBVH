@@ -8,7 +8,7 @@ daxa_BufferPtr(AABBGeometryInfo) aabb_transforms = daxa_push_constant.aabb_trans
 #if defined(_VERTEX)
 // ===================== VERTEX SHADER ===============================
 layout(location = 0) out u32 depth_out;
-layout(location = 2) out u32 idx;
+layout(location = 1) out u32 idx;
 f32vec3 vertices[8] = f32vec3[](
     f32vec3( 0.0,  1.0, 0.0 ),
     f32vec3( 0.0,  0.0, 0.0 ),
@@ -35,7 +35,7 @@ void main()
     );
     mat4 m_proj_view_model = deref(camera_transforms).m_proj_view * m_model;
     depth_out = deref(aabb_transforms[gl_InstanceIndex]).depth;
-    if(depth_out == 0 || depth_out == 1) 
+    if(depth_out == 11) 
     {
         gl_Position = m_proj_view_model * pre_trans_pos;
     } else {
@@ -47,16 +47,12 @@ void main()
 // ===================== FRAGMENT SHADER ===============================
 layout (location = 0) out f32vec4 out_color;
 layout (location = 0) flat in u32 depth_out;
-layout (location = 2) flat in u32 idx;
+layout (location = 1) flat in u32 idx;
 
 void main()
 {
     f32vec4 color = f32vec4(1.0, 1.0, 1.0, 1.0);
-    if(idx == 2) 
-    { 
-        color = f32vec4(0.0, 1.0, 0.0, 1.0);
-    }
-    else if(depth_out == 1)
+    if(depth_out == 1)
     {
         color = f32vec4(1.0, 0.0, 0.0, 1.0);
     }

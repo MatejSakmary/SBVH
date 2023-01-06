@@ -226,6 +226,7 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInf
 {
     // split algorithm
     f32 best_cost = f32(info.primitive_aabbs.size()) * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
+    assert(best_cost != 0.0f);
     Axis best_axis = Axis::LAST;
     i32 best_event = -1;
     AABB left_bounding_box;
@@ -327,13 +328,13 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
         for(const auto & primitive : info.primitive_aabbs)
         {
             // The entire primitive is on the left side of the splitting plane
-            if(primitive.aabb.max_bounds[info.split.axis] < splitting_plane) 
+            if(primitive.aabb.max_bounds[info.split.axis] <= splitting_plane) 
             {
                 left_primitive_aabbs.push_back(primitive);
                 left_aabb.expand_bounds(primitive.aabb);
             } 
             // The entire primitive is on the right side of the splitting plane
-            else if (primitive.aabb.min_bounds[info.split.axis] > splitting_plane) 
+            else if (primitive.aabb.min_bounds[info.split.axis] >= splitting_plane) 
             { 
                 right_primitive_aabbs.push_back(primitive); 
                 right_aabb.expand_bounds(primitive.aabb);
@@ -409,10 +410,20 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             f32 min_sah = glm::min(glm::min(unsplit_right_cost, unsplit_left_cost), split_cost);
             if(min_sah == split_cost)
             {
-                AABB clipped_left_primitive_aabb = get_intersection_aabb(expanded_left_aabb, left_aabb);
-                AABB clipped_right_primitive_aabb = get_intersection_aabb(expanded_right_aabb, right_aabb);
+                AABB clipped_left_primitive_aabb = get_intersection_aabb(expanded_left_aabb, border_primitive.aabb);
+                AABB clipped_right_primitive_aabb = get_intersection_aabb(expanded_right_aabb, border_primitive.aabb);
                 left_aabb = expanded_left_aabb;
                 right_aabb = expanded_right_aabb;
+                assert(clipped_left_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_left_primitive_aabb.min_bounds != f32vec3(INFINITY));
+                assert(clipped_right_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_right_primitive_aabb.min_bounds != f32vec3(INFINITY));
+                for(i32 i = 0; i < left_primitive_aabbs.size(); i++)
+                {
+                    if(clipped_left_primitive_aabb.min_bounds == left_primitive_aabbs.at(i).aabb.min_bounds &&
+                       clipped_left_primitive_aabb.max_bounds == left_primitive_aabbs.at(i).aabb.max_bounds)
+                    {
+                        DEBUG_OUT("here");
+                    }
+                }
                 left_primitive_aabbs.push_back(PrimitiveAABB(clipped_left_primitive_aabb, border_primitive.primitive));
                 right_primitive_aabbs.push_back(PrimitiveAABB(clipped_right_primitive_aabb, border_primitive.primitive));
             }
@@ -435,6 +446,7 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
         auto & right_child = bvh_nodes.emplace_back();
         right_child.bounding_box = right_aabb;
         bvh_nodes.at(info.node_idx).right_index = i32(bvh_nodes.size() - 1);
+
 
         return {left_primitive_aabbs, right_primitive_aabbs};
     };
@@ -502,6 +514,12 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
             .primitive_aabbs = primitive_aabbs
         });
 
+        if(best_split.axis == Axis::LAST)
+        {
+            nodes.pop();
+            return;
+        }
+
         // try spatial split only if the boxes intersect and their intersection is big enough 
         // compared to the AABB of the of the scene -> this allows spatial splits only in the 
         // upper levels of the BVH where spatial splits are the most efficient
@@ -528,9 +546,10 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
         auto [left_primitive_aabbs, right_primitive_aabbs] = split_node({
             .split = best_split,
             .primitive_aabbs = primitive_aabbs,
-            .node_idx = node_idx
+            .node_idx = node_idx,
+            .ray_primitive_intersection_cost = info.ray_primitive_intersection_cost,
+            .ray_aabb_intersection_cost = info.ray_aabb_intersection_cost
         });
-        return;
 
         if(left_primitive_aabbs.size() > 1) { nodes.emplace(bvh_nodes.at(node_idx).left_index, std::move(left_primitive_aabbs));}
         if(right_primitive_aabbs.size() > 1){ nodes.emplace(bvh_nodes.at(node_idx).right_index, std::move(right_primitive_aabbs));}
