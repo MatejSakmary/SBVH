@@ -15,6 +15,9 @@ struct AABBGeometryInfo
     daxa_f32vec3 position;
     daxa_f32vec3 scale;
     daxa_u32 depth;
+#ifdef VISUALIZE_SPATIAL_SPLITS
+    daxa_u32 spatial;
+#endif
 };
 DAXA_ENABLE_BUFFER_PTR(AABBGeometryInfo)
 
@@ -41,6 +44,7 @@ struct AABBDrawPC
 {
     daxa_BufferPtr(TransformData) transforms;
     daxa_BufferPtr(AABBGeometryInfo) aabb_transforms;
+    daxa_i32 bvh_visualization_depth;
 };
 
 struct DrawScenePC

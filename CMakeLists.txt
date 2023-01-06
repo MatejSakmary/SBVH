@@ -25,8 +25,9 @@ target_link_libraries(${PROJECT_NAME}
     assimp::assimp
     glfw
 )
-# define LOG_DEBUG whenever building in DEBUG mode
+# Debug mode defines
 target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Debug>:LOG_DEBUG>")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "VISUALIZE_SPATIAL_SPLITS")
 
 # This creates a marko define that can be used to find the daxa include folder for shader compilation.
 set(DAXA_INCLUDE_DIR "$<TARGET_FILE_DIR:SBVH>/../../vcpkg_installed/x64-$<LOWER_CASE:$<PLATFORM_ID>>/include")

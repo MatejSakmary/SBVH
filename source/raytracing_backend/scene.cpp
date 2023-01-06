@@ -118,8 +118,8 @@ Scene::Scene(const std::string & scene_path)
     Assimp::Importer importer;
     const aiScene * scene = importer.ReadFile( 
         scene_path, 
-        aiProcess_Triangulate           |
-        aiProcess_JoinIdenticalVertices |
+        // aiProcess_Triangulate           |
+        // aiProcess_JoinIdenticalVertices |
         aiProcess_SortByPType);
 
     if((scene == nullptr) || ((scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0u) || (scene->mRootNode == nullptr))
@@ -141,7 +141,6 @@ void Scene::build_bvh(const BuildBVHInfo & info)
             .ray_aabb_intersection_cost = 3.0f,
             .spatial_bin_count = 8u,
             .spatial_alpha = 10e-5f
-            // .spatial_alpha = 1.0f
         }
     );
 }

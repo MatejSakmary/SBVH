@@ -13,13 +13,23 @@ inline static const daxa::RasterPipelineCompileInfo DRAW_AABB_TASK_RASTER_PIPE_I
     .vertex_shader_info = {
         .source = daxa::ShaderFile{"aabb.glsl"},
         .compile_options = {
-            .defines = {{"_VERTEX", ""}},
+            .defines = {
+                {"_VERTEX", ""},
+#ifdef VISUALIZE_SPATIAL_SPLITS
+                {"VISUALIZE_SPATIAL_SPLITS", ""},
+#endif
+            },
         },
     },
     .fragment_shader_info = {
         .source = daxa::ShaderFile{"aabb.glsl"},
         .compile_options = {
-            .defines = {{"_FRAGMENT", ""}},
+            .defines = {
+                { "_FRAGMENT", ""},
+#ifdef VISUALIZE_SPATIAL_SPLITS
+                {"VISUALIZE_SPATIAL_SPLITS", ""},
+#endif
+            },
         },
     },
     .color_attachments = {
@@ -31,9 +41,6 @@ inline static const daxa::RasterPipelineCompileInfo DRAW_AABB_TASK_RASTER_PIPE_I
         .depth_attachment_format = daxa::Format::D32_SFLOAT,
         .enable_depth_test = true,
         .enable_depth_write = true,
-        // .depth_test_compare_op = daxa::CompareOp::GREATER_OR_EQUAL,
-        // .min_depth_bounds = 1.0f,
-        // .max_depth_bounds = 0.0f,
     },
     .raster = {
         .primitive_topology = daxa::PrimitiveTopology::LINE_STRIP,
@@ -106,6 +113,7 @@ inline void task_draw_AABB(RendererContext & context)
                 cmd_list.push_constant(AABBDrawPC{
                     .transforms = context.device.get_device_address(transforms_buffer[0]),
                     .aabb_transforms = context.device.get_device_address(aabbs_buffer[0]),
+                    .bvh_visualization_depth = context.render_info.visualized_depth,
                 });
                 cmd_list.set_index_buffer(index_buffer[0], 0, sizeof(u32));
                 cmd_list.draw_indexed({

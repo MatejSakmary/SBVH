@@ -81,6 +81,7 @@ struct RendererContext
         };
 
         std::vector<RenderObjectInfo> objects;
+        i32 visualized_depth;
     };
 
     daxa::Context vulkan_context;

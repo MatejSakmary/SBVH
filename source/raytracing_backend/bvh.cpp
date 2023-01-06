@@ -225,7 +225,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
 auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInfo
 {
     // split algorithm
-    f32 best_cost = f32(info.primitive_aabbs.size()) * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
+    f32 best_cost = INFINITY;//f32(info.primitive_aabbs.size()) * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
     assert(best_cost != 0.0f);
     Axis best_axis = Axis::LAST;
     i32 best_event = -1;
@@ -308,10 +308,16 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
 
         auto & left_child = bvh_nodes.emplace_back();
         left_child.bounding_box = info.split.left_bounding_box;
+#ifdef VISUALIZE_SPATIAL_SPLITS
+        left_child.spatial = 0u;
+#endif
         bvh_nodes.at(info.node_idx).left_index = i32(bvh_nodes.size() - 1);
 
         auto & right_child = bvh_nodes.emplace_back();
         right_child.bounding_box = info.split.right_bounding_box;
+#ifdef VISUALIZE_SPATIAL_SPLITS
+        right_child.spatial = 0u;
+#endif
         bvh_nodes.at(info.node_idx).right_index = i32(bvh_nodes.size() - 1);
     };
 
@@ -416,14 +422,6 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
                 right_aabb = expanded_right_aabb;
                 assert(clipped_left_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_left_primitive_aabb.min_bounds != f32vec3(INFINITY));
                 assert(clipped_right_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_right_primitive_aabb.min_bounds != f32vec3(INFINITY));
-                for(i32 i = 0; i < left_primitive_aabbs.size(); i++)
-                {
-                    if(clipped_left_primitive_aabb.min_bounds == left_primitive_aabbs.at(i).aabb.min_bounds &&
-                       clipped_left_primitive_aabb.max_bounds == left_primitive_aabbs.at(i).aabb.max_bounds)
-                    {
-                        DEBUG_OUT("here");
-                    }
-                }
                 left_primitive_aabbs.push_back(PrimitiveAABB(clipped_left_primitive_aabb, border_primitive.primitive));
                 right_primitive_aabbs.push_back(PrimitiveAABB(clipped_right_primitive_aabb, border_primitive.primitive));
             }
@@ -441,11 +439,18 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
 
         auto & left_child = bvh_nodes.emplace_back();
         left_child.bounding_box = left_aabb;
+#ifdef VISUALIZE_SPATIAL_SPLITS
+        left_child.spatial = 1u;
+#endif
         bvh_nodes.at(info.node_idx).left_index = i32(bvh_nodes.size() - 1);
 
         auto & right_child = bvh_nodes.emplace_back();
         right_child.bounding_box = right_aabb;
+#ifdef VISUALIZE_SPATIAL_SPLITS
+        right_child.spatial = 1u;
+#endif
         bvh_nodes.at(info.node_idx).right_index = i32(bvh_nodes.size() - 1);
+
 
 
         return {left_primitive_aabbs, right_primitive_aabbs};
@@ -575,7 +580,10 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
         info.emplace_back(AABBGeometryInfo{
             .position = daxa_vec3_from_glm(aabb.min_bounds),
             .scale = daxa_vec3_from_glm(aabb.max_bounds - aabb.min_bounds),
-            .depth = static_cast<daxa::u32>(depth)
+            .depth = static_cast<daxa::u32>(depth),
+#ifdef VISUALIZE_SPATIAL_SPLITS
+            .spatial = node.spatial
+#endif
         });
         
         if(node.left_index != 0) { que.push({depth + 1u, bvh_nodes.at(node.left_index)});}

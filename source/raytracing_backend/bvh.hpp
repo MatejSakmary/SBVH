@@ -38,6 +38,9 @@ struct BVHNode
     // in which case they are indexing into an array of scene primitives
     i32 left_index{};  
     i32 right_index{};
+#ifdef VISUALIZE_SPATIAL_SPLITS
+    u32 spatial;
+#endif
 };
 
 struct BestSplitInfo

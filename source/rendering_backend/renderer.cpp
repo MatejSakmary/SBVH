@@ -216,12 +216,17 @@ void Renderer::draw(const Camera & camera)
     if(result.is_ok()) {
         if (result.value() == true)
         {
-            std::cout << "[Renderer::draw()] Shaders recompiled successfully" << std::endl;
+            DEBUG_OUT("[Renderer::draw()] Shaders recompiled successfully");
         }
     } else {
-        std::cout << result.to_string() << std::endl;
+        DEBUG_OUT(result.to_string());
     }
 
+}
+
+void Renderer::set_bvh_visualization_depth(i32 depth)
+{
+    context.render_info.visualized_depth = depth;
 }
 
 void Renderer::reload_bvh_data(const BVH & bvh)
@@ -330,6 +335,7 @@ void Renderer::reload_scene_data(const Scene & scene)
     context.conditionals.fill_scene_geometry = static_cast<u32>(true);
     DEBUG_OUT("[Renderer::reload_scene_data()] scene reload successfull");
 }
+
 
 Renderer::~Renderer()
 {

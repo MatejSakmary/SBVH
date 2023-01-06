@@ -23,6 +23,7 @@ struct Application
                 unsigned int E : 1 = 0;
                 unsigned int CTRL : 1 = 0;
                 unsigned int SPACE : 1 = 0;
+                unsigned int LEFT_SHIFT : 1 = 0;
             } bits;
         };
 
@@ -33,6 +34,8 @@ struct Application
         b32 first_input = 1u;
         f32vec2 last_mouse_pos;
         ImGui::FileBrowser file_browser;
+
+        i32 visualized_depth;
 
         KeyTable key_table;
     };

@@ -53,8 +53,9 @@ void Application::key_callback(const i32 key, const i32 code, const i32 action, 
             case GLFW_KEY_D: state.key_table.bits.D = update_state(action); return;
             case GLFW_KEY_Q: state.key_table.bits.Q = update_state(action); return;
             case GLFW_KEY_E: state.key_table.bits.E = update_state(action); return;
-            case GLFW_KEY_LEFT_CONTROL: state.key_table.bits.CTRL = update_state(action); return;
             case GLFW_KEY_SPACE: state.key_table.bits.SPACE = update_state(action); return;
+            case GLFW_KEY_LEFT_SHIFT: state.key_table.bits.LEFT_SHIFT = update_state(action); return;
+            case GLFW_KEY_LEFT_CONTROL: state.key_table.bits.CTRL = update_state(action); return;
             default: break;
         }
     }
@@ -100,6 +101,8 @@ void Application::ui_update()
     ImGui::Begin("Render controls window");
     if (ImGui::Button("Reload Scene", {100, 20})) { state.file_browser.Open(); }
     if (ImGui::Button("Rebuild BVH", {100, 20})) { rebuild_bvh({}); }
+    ImGui::SliderInt("BVH depth", &state.visualized_depth, 0, 20);
+    renderer.set_bvh_visualization_depth(state.visualized_depth);
     ImGui::End();
 
     ImGui::Begin("Camera Info");
@@ -107,6 +110,7 @@ void Application::ui_update()
     ImGui::SameLine();
     ImGui::Text("%s", glm::to_string(camera.get_camera_position()).c_str());
     ImGui::End();
+
 
     state.file_browser.Display();
 
