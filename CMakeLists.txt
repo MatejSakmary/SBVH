@@ -7,9 +7,11 @@ add_executable(${PROJECT_NAME}
     "source/application.cpp"
     "source/rendering_backend/renderer.cpp"
     "source/rendering_backend/camera.cpp"
+    "source/raytracing_backend/raytracer.cpp"
     "source/raytracing_backend/scene.cpp"
     "source/raytracing_backend/bvh.cpp"
     "source/raytracing_backend/aabb.cpp"
+    "source/external/stb_image_impl.cpp"
 )
 
 find_package(assimp CONFIG REQUIRED)
@@ -17,8 +19,10 @@ find_package(imgui CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(daxa CONFIG REQUIRED)
+find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
 
-target_link_libraries(${PROJECT_NAME}
+target_include_directories(${PROJECT_NAME} PRIVATE ${STB_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE
     glm::glm
     imgui::imgui
     daxa::daxa

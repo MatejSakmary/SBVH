@@ -18,6 +18,7 @@ struct Camera
     void update_front_vector(f32 x_offset, f32 y_offset);
     [[nodiscard]] auto get_camera_position() const -> f32vec3;
     [[nodiscard]] auto get_view_matrix() const -> f32mat4x4;
+    [[nodiscard]] auto get_ray(u32vec2 screen_coords, u32vec2 resolution) const -> Ray;
 
     private:
         f32vec3 position;

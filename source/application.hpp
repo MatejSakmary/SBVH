@@ -5,6 +5,7 @@
 #include "types.hpp"
 #include "rendering_backend/renderer.hpp"
 #include "raytracing_backend/scene.hpp"
+#include "raytracing_backend/raytracer.hpp"
 
 struct Application 
 {
@@ -52,6 +53,7 @@ struct Application
         Renderer renderer;
         Camera camera;
         Scene scene;
+        Raytracer raytracer;
 
 
         void init_window();

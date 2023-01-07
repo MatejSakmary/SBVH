@@ -7,6 +7,19 @@ Camera::Camera(const CameraInfo & info) :
 {
 }
 
+auto Camera::get_ray(u32vec2 screen_coords, u32vec2 resolution) const -> Ray
+{
+    f32vec3 right = glm::cross(front, up);
+    f32vec3 right_fov_correct = right * (f32(resolution.x) / f32(resolution.y));
+
+    f32vec3 right_offset = right_fov_correct * (2.0f * ((screen_coords.x + 0.5f) / resolution.x) - 1.0f);
+    f32vec3 up_offset = up * (2.0f * ((screen_coords.y + 0.5f) / resolution.y) - 1.0f);
+
+    f32vec3 direction = front + right_offset + up_offset;
+    
+    return Ray(position, direction);
+}
+
 void Camera::move_camera(f32 delta_time, Direction direction)
 {
     switch (direction)

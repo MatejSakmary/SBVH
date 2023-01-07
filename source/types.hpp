@@ -59,6 +59,14 @@ enum Direction
     UNKNOWN
 };
 
+struct Hit
+{
+    bool hit;
+    f32vec3 hit_normal;
+    f32 hit_internal_fac;
+    f32 hit_distance;
+};
+
 struct Ray
 {
     f32vec3 start = {0.0, 0.0, 0.0};

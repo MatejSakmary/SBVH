@@ -680,6 +680,13 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
     return info;
 }
 
+auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
+{
+    // NOTE(msakmary) check if I hit aabb for now
+    const auto & root_node = bvh_nodes.at(0);
+    return root_node.bounding_box.ray_box_intersection(ray);
+}
+
 auto SAH(const SAHCalculateInfo & info) -> f32
 {
     // Cost = 2 * T_AABB +
@@ -691,4 +698,3 @@ auto SAH(const SAHCalculateInfo & info) -> f32
         (info.left_aabb_area / info.parent_aabb_area) * info.left_primitive_count * info.ray_tri_test_cost + 
         (info.right_aabb_area / info.parent_aabb_area) * info.right_primitive_count * info.ray_tri_test_cost;
 }
-

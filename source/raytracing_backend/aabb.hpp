@@ -19,6 +19,7 @@ struct AABB
     auto expand_bounds(const f32vec3 & vertex) -> void;
     auto expand_bounds(const Triangle & triangle) -> void;
     auto expand_bounds(const AABB & aabb) -> void;
+    [[nodiscard]] auto ray_box_intersection(Ray ray) const -> Hit;
     [[nodiscard]] auto check_if_valid() const -> bool;
     [[nodiscard]] auto get_area() const -> f32;
 

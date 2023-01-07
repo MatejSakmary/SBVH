@@ -101,6 +101,7 @@ void Application::ui_update()
     ImGui::Begin("Render controls window");
     if (ImGui::Button("Reload Scene", {100, 20})) { state.file_browser.Open(); }
     if (ImGui::Button("Rebuild BVH", {100, 20})) { rebuild_bvh({}); }
+    if (ImGui::Button("Raytrace View", {100, 20})) { raytracer.raytrace_scene(scene, camera); }
     ImGui::SliderInt("BVH depth", &state.visualized_depth, 0, 20);
     renderer.set_bvh_visualization_depth(state.visualized_depth);
     ImGui::End();
@@ -141,7 +142,8 @@ Application::Application() :
     },
     renderer{window},
     camera {{.position = {0.0, 0.0, 500.0}, .front = {0.0, 0.0, -1.0}, .up = {0.0, 1.0, 0.0}}},
-    scene{"resources/scenes/cubes/cubes.fbx"}
+    scene{"resources/scenes/cubes/cubes.fbx"},
+    raytracer{{1080, 720}}
 {
     state.file_browser.SetTitle("Select scene file");
     state.file_browser.SetTypeFilters({ ".fbx", ".obj" });
