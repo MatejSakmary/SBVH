@@ -180,7 +180,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
 
         AABB right_sweep_aabb;
         u32 right_sweep_bin_primitives = 0;
-        for(i32 bin = i32(info.bin_count - 1); bin >= 0; bin--)
+        for(i32 bin = i32(info.bin_count - 2); bin >= 0; bin--)
         {
             // expand bounds of the right sweep bin and increase the count *after* the cost is computed
             //   - this is because left sweep starts with with the 0th bin in the 0th element
@@ -198,7 +198,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
                 .ray_tri_test_cost = info.ray_primitive_cost
             });
 
-            if(cost < best_cost)
+            if(cost < best_cost && left_sweep_bin_primitives.at(bin) > 1 && right_sweep_bin_primitives > 1)
             {
                 best_cost = cost;
                 best_event = parent_aabb.min_bounds[axis] + bin_size[axis] * (bin + 1);
@@ -225,7 +225,8 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
 auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInfo
 {
     // split algorithm
-    f32 best_cost = INFINITY;//f32(info.primitive_aabbs.size()) * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
+    f32 best_cost = f32(info.primitive_aabbs.size()) * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
+    f32 bbarea = bvh_nodes.at(info.node_idx).bounding_box.get_area();
     assert(best_cost != 0.0f);
     Axis best_axis = Axis::LAST;
     i32 best_event = -1;
@@ -333,6 +334,11 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
         AABB right_aabb;
         for(const auto & primitive : info.primitive_aabbs)
         {
+            if(!primitive.aabb.check_if_valid())
+            {
+                continue;
+            }
+
             // The entire primitive is on the left side of the splitting plane
             if(primitive.aabb.max_bounds[info.split.axis] <= splitting_plane) 
             {
@@ -346,7 +352,10 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
                 right_aabb.expand_bounds(primitive.aabb);
             } 
             // The primitive lies on the border and needs to be split
-            else { border_primitive_aabbs.push_back(primitive); }
+            else 
+            { 
+                border_primitive_aabbs.push_back(primitive);
+            }
         }
 
         for(const auto & border_primitive : border_primitive_aabbs)
@@ -418,22 +427,32 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             {
                 AABB clipped_left_primitive_aabb = get_intersection_aabb(expanded_left_aabb, border_primitive.aabb);
                 AABB clipped_right_primitive_aabb = get_intersection_aabb(expanded_right_aabb, border_primitive.aabb);
-                left_aabb = expanded_left_aabb;
-                right_aabb = expanded_right_aabb;
-                assert(clipped_left_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_left_primitive_aabb.min_bounds != f32vec3(INFINITY));
-                assert(clipped_right_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_right_primitive_aabb.min_bounds != f32vec3(INFINITY));
-                left_primitive_aabbs.push_back(PrimitiveAABB(clipped_left_primitive_aabb, border_primitive.primitive));
-                right_primitive_aabbs.push_back(PrimitiveAABB(clipped_right_primitive_aabb, border_primitive.primitive));
+                if(expanded_left_aabb.check_if_valid())
+                {
+                    left_aabb = expanded_left_aabb;
+                    assert(clipped_left_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_left_primitive_aabb.min_bounds != f32vec3(INFINITY));
+                    left_primitive_aabbs.push_back(PrimitiveAABB(clipped_left_primitive_aabb, border_primitive.primitive));
+                }
+                if(expanded_right_aabb.check_if_valid())
+                {
+                    right_aabb = expanded_right_aabb;
+                    assert(clipped_right_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_right_primitive_aabb.min_bounds != f32vec3(INFINITY));
+                    right_primitive_aabbs.push_back(PrimitiveAABB(clipped_right_primitive_aabb, border_primitive.primitive));
+                }
             }
-            else if(min_sah == unsplit_left_cost)
+            else if(min_sah == unsplit_left_cost && unsplit_left_aabb.check_if_valid())
             {
                 left_aabb = unsplit_left_aabb;
                 left_primitive_aabbs.push_back(border_primitive);
             }
-            else
+            else if (min_sah == unsplit_right_cost && unsplit_right_aabb.check_if_valid())
             {
                 right_aabb = unsplit_right_aabb;   
                 right_primitive_aabbs.push_back(border_primitive);
+            }
+            else{
+                // never should happen
+                assert(false);
             }
         }
 
@@ -468,11 +487,25 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             std::vector<PrimitiveAABB> right_primitive_aabbs;
             left_primitive_aabbs.reserve(split_event);
             right_primitive_aabbs.reserve(info.primitive_aabbs.size() - split_event);
+            for(int i = 0; i < split_event; i++)
+            {
+                if(info.primitive_aabbs.at(i).aabb.check_if_valid())
+                {
+                    left_primitive_aabbs.emplace_back(info.primitive_aabbs.at(i));
+                }
+            }
+            for(int i = split_event; i < info.primitive_aabbs.size(); i++)
+            {
+                if(info.primitive_aabbs.at(i).aabb.check_if_valid())
+                {
+                    right_primitive_aabbs.emplace_back(info.primitive_aabbs.at(i));
+                }
+            }
             // copy primtives so that:  left <= [begin, split_event) ; [split_event, end) => right
             //   - this is correct because when finding the object split we store the best event *after* expanding the right AABB,
             //     so the event must belong to the right aabb not the left (event being the splitting primitive)
-            std::copy(info.primitive_aabbs.begin(), info.primitive_aabbs.begin() + split_event, std::back_inserter(left_primitive_aabbs));
-            std::copy(info.primitive_aabbs.begin() + split_event, info.primitive_aabbs.end(), std::back_inserter(right_primitive_aabbs));
+            // std::copy(info.primitive_aabbs.begin(), info.primitive_aabbs.begin() + split_event, std::back_inserter(left_primitive_aabbs));
+            // std::copy(info.primitive_aabbs.begin() + split_event, info.primitive_aabbs.end(), std::back_inserter(right_primitive_aabbs));
             return {left_primitive_aabbs, right_primitive_aabbs};
         }
         case SplitType::SPATIAL:
@@ -483,8 +516,10 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
     return {};
 }
 
+static i32 leaf_count = 0;
 auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> void
 {
+    leaf_count = 0;
     // Generate vector of Primitive AABBs from the vector of primitives
     std::vector<PrimitiveAABB> primitive_aabbs;
     primitive_aabbs.reserve(primitives.size());
@@ -512,6 +547,16 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
     {
         auto & [node_idx, primitive_aabbs] = nodes.front();
 
+        if(primitive_aabbs.size() == 1) 
+        { 
+            create_leaf({
+                .node_idx = node_idx,
+                .primitives = primitive_aabbs
+            }); 
+            nodes.pop();
+            continue;
+        }
+
         BestSplitInfo best_split = SAH_greedy_best_split({
             .ray_primitive_cost = info.ray_primitive_intersection_cost,
             .ray_aabb_test_cost = info.ray_aabb_intersection_cost,
@@ -521,8 +566,13 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
 
         if(best_split.axis == Axis::LAST)
         {
+            DEBUG_OUT("Early leaf with primitive count " + std::to_string(primitive_aabbs.size()) + " node index " + std::to_string(node_idx));
+            create_leaf({
+                .node_idx = node_idx,
+                .primitives = primitive_aabbs
+            });
             nodes.pop();
-            return;
+            continue;
         }
 
         // try spatial split only if the boxes intersect and their intersection is big enough 
@@ -544,9 +594,24 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
                     .node_idx = node_idx,
                     .primitive_aabbs = primitive_aabbs
                 });
-                if(spatial_split.cost < best_split.cost) { best_split = spatial_split; }
+                if(spatial_split.cost < best_split.cost) 
+                { 
+                    best_split = spatial_split; 
+                }
             } 
         }
+
+#ifdef LOG_DEBUG
+        if( best_split.type == SplitType::OBJECT && std::get<i32>(best_split.event) == 0 )
+        {
+            DEBUG_OUT("best object event unsplit with primitive count " + std::to_string(primitive_aabbs.size()) + " node index " + std::to_string(node_idx));
+        } 
+        else if (best_split.type == SplitType::SPATIAL && 
+                (std::get<f32>(best_split.event) == bvh_nodes.at(node_idx).bounding_box.max_bounds[best_split.axis]))
+        {
+            DEBUG_OUT("best spatial event unsplit with primitive count " + std::to_string(primitive_aabbs.size()) + " node index " + std::to_string(node_idx));
+        }
+#endif
 
         auto [left_primitive_aabbs, right_primitive_aabbs] = split_node({
             .split = best_split,
@@ -556,10 +621,23 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
             .ray_aabb_intersection_cost = info.ray_aabb_intersection_cost
         });
 
-        if(left_primitive_aabbs.size() > 1) { nodes.emplace(bvh_nodes.at(node_idx).left_index, std::move(left_primitive_aabbs));}
-        if(right_primitive_aabbs.size() > 1){ nodes.emplace(bvh_nodes.at(node_idx).right_index, std::move(right_primitive_aabbs));}
+        if(left_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).left_index, std::move(left_primitive_aabbs));}
+        if(right_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).right_index, std::move(right_primitive_aabbs));}
         nodes.pop();
     }
+    DEBUG_OUT("BVH Built - triangle count: " + std::to_string(primitives.size()) + " leaf count: " + std::to_string(bvh_leaves.size()) + " primitives in leaves " + std::to_string(leaf_count));
+}
+
+auto BVH::create_leaf(const CreateLeafInfo & info) -> void
+{
+    auto & leaf = bvh_leaves.emplace_back();
+    leaf_count += info.primitives.size();
+    for(const auto & primitiveAABB : info.primitives)
+    {
+        leaf.primitives.push_back(primitiveAABB.primitive);
+    }
+    bvh_nodes.at(info.node_idx).left_index = -1;
+    bvh_nodes.at(info.node_idx).right_index = i32(bvh_leaves.size() - 1);
 }
 
 auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
@@ -586,8 +664,16 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
 #endif
         });
         
-        if(node.left_index != 0) { que.push({depth + 1u, bvh_nodes.at(node.left_index)});}
-        if(node.right_index != 0){ que.push({depth + 1u, bvh_nodes.at(node.right_index)});}
+        if(node.left_index > 0) 
+        {
+            que.push({depth + 1u, bvh_nodes.at(node.right_index)});
+            if(node.right_index != 0) {que.push({depth + 1u, bvh_nodes.at(node.left_index)});}
+#ifdef VISUALIZE_SPATIAL_SPLITS
+            else { info.back().spatial = 3; }
+        }
+        else if (node.left_index < 0) { info.back().spatial = 2; }
+        else { info.back().spatial = 3; }
+#endif
         que.pop();
     }
     return info;

@@ -37,6 +37,26 @@ auto AABB::expand_bounds(const AABB & aabb) -> void
     max_bounds = component_wise_max(max_bounds, aabb.max_bounds);
 }
 
+auto AABB::check_if_valid() const -> bool
+{
+    f32vec3 sizes = max_bounds - min_bounds;
+    // one of the boxes size is negative
+    if(sizes.x < 0.0f || sizes.y < 0.0f || sizes.z < 0.0f)
+    {
+        return false;
+    }
+    // box is either 0 size or is only a line
+    if((sizes.x <= 0.0f && sizes.y <= 0.0f && sizes.z < 0.0f) ||
+       (sizes.x == 0.0f && sizes.y == 0.0f) ||
+       (sizes.y == 0.0f && sizes.z == 0.0f) ||
+       (sizes.z == 0.0f && sizes.x == 0.0f))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 auto AABB::get_area() const -> f32
 {
     if(max_bounds == f32vec3(-INFINITY) || min_bounds == f32vec3(INFINITY)) { return 0.0f; }

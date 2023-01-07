@@ -43,6 +43,11 @@ struct BVHNode
 #endif
 };
 
+struct BVHLeaf
+{
+    std::vector<const Triangle *> primitives;
+};
+
 struct BestSplitInfo
 {
     Axis axis;
@@ -99,6 +104,12 @@ struct ConstructBVHInfo
     f32 spatial_alpha;
 };
 
+struct CreateLeafInfo
+{
+    u32 node_idx;
+    std::vector<PrimitiveAABB> & primitives;
+};
+
 struct BVH
 {
     static auto project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void;
@@ -112,5 +123,7 @@ struct BVH
         auto SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInfo;
         auto spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo;
         auto split_node(const SplitNodeInfo & info) -> SplitPrimitives;
+        auto create_leaf(const CreateLeafInfo & info) -> void;
         std::vector<BVHNode> bvh_nodes;
+        std::vector<BVHLeaf> bvh_leaves;
 };
