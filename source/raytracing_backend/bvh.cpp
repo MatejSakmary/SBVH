@@ -198,7 +198,8 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
                 .ray_tri_test_cost = info.ray_primitive_cost
             });
 
-            if(cost < best_cost && left_sweep_bin_primitives.at(bin) > 1 && right_sweep_bin_primitives > 1)
+            if(cost < best_cost && left_sweep_bin_primitives.at(bin) > 1 &&
+               right_sweep_bin_primitives > 1 && bin_size[axis] > 0.001f)
             {
                 best_cost = cost;
                 best_event = parent_aabb.min_bounds[axis] + bin_size[axis] * (bin + 1);
@@ -690,3 +691,4 @@ auto SAH(const SAHCalculateInfo & info) -> f32
         (info.left_aabb_area / info.parent_aabb_area) * info.left_primitive_count * info.ray_tri_test_cost + 
         (info.right_aabb_area / info.parent_aabb_area) * info.right_primitive_count * info.ray_tri_test_cost;
 }
+

@@ -43,7 +43,7 @@ void main()
     mat4 m_proj_view_model = deref(camera_transforms).m_proj_view * m_model;
     depth_out = deref(aabb_transforms[gl_InstanceIndex]).depth;
 
-    if(depth_out == daxa_push_constant.bvh_visualization_depth || spatial == 2) 
+    if(depth_out == daxa_push_constant.bvh_visualization_depth) 
     {
         gl_Position = m_proj_view_model * pre_trans_pos;
     }

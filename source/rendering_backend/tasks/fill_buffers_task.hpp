@@ -45,6 +45,7 @@ inline void task_fill_buffers(RendererContext & context)
             #pragma region indices
             if(context.conditionals.fill_indices != 0u)
             {
+                DEBUG_OUT("uploading index data");
                 auto indices_staging_buffer = context.device.create_buffer({
                     .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
                     .size = sizeof(IndexBuffer),
@@ -94,6 +95,7 @@ inline void task_fill_buffers(RendererContext & context)
             #pragma region aabbs
             if(context.conditionals.fill_aabbs != 0u)
             {
+                DEBUG_OUT("uploading aabb data");
                 auto aabbs_staging_buffer = context.device.create_buffer({
                     .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
                     .size = static_cast<u32>(sizeof(AABBGeometryInfo) * context.buffers.aabb_info_buffer.cpu_buffer.size()),
@@ -118,6 +120,7 @@ inline void task_fill_buffers(RendererContext & context)
             #pragma region scene_data
             if(context.conditionals.fill_scene_geometry != 0u)
             {
+                DEBUG_OUT("uploading scene data");
                 auto vertices_staging_buffer = context.device.create_buffer({
                     .memory_flags = daxa::MemoryFlagBits::HOST_ACCESS_RANDOM,
                     .size = static_cast<u32>(sizeof(SceneGeometryVertices) * context.buffers.scene_vertices.cpu_buffer.size()),
