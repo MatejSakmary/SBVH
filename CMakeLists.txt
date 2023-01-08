@@ -30,9 +30,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     glfw
 )
 # Debug mode defines
-# target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Debug>:LOG_DEBUG>")
-target_compile_definitions(${PROJECT_NAME} PRIVATE "LOG_DEBUG")
-target_compile_definitions(${PROJECT_NAME} PRIVATE "VISUALIZE_SPATIAL_SPLITS")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebugInfo>>:LOG_DEBUG>")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "$<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebugInfo>>:VISUALIZE_SPATIAL_SPLITS>")
 
 # This creates a marko define that can be used to find the daxa include folder for shader compilation.
 set(DAXA_INCLUDE_DIR "$<TARGET_FILE_DIR:SBVH>/../../vcpkg_installed/x64-$<LOWER_CASE:$<PLATFORM_ID>>/include")

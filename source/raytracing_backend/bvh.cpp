@@ -226,7 +226,11 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
 auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInfo
 {
     // split algorithm
-    f32 best_cost = f32(info.primitive_aabbs.size()) * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
+    f32 best_cost = INFINITY;
+    if(info.join_leaves)
+    {
+        best_cost = f32(info.primitive_aabbs.size()) * info.ray_primitive_cost * bvh_nodes.at(info.node_idx).bounding_box.get_area();
+    }
     f32 bbarea = bvh_nodes.at(info.node_idx).bounding_box.get_area();
     assert(best_cost != 0.0f);
     Axis best_axis = Axis::LAST;
@@ -241,6 +245,11 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInf
         {
             auto centroid_first = first.aabb.get_axis_centroid(static_cast<Axis>(axis));
             auto centroid_second = second.aabb.get_axis_centroid(static_cast<Axis>(axis));
+            if(centroid_first == centroid_second)
+            {
+                assert(first.aabb.get_area() == second.aabb.get_area());
+                return first.aabb.get_area() < second.aabb.get_area();
+            }
             return centroid_first < centroid_second;
         };
         std::sort(primitive_aabbs.begin(), primitive_aabbs.end(), compare_op);
@@ -256,14 +265,14 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInf
 
         // right sweep
         AABB right_sweep_aabb;
-        for(i32 i = i32(primitive_aabbs.size() - 1); i >= 0 ; i--)
+        for(i32 i = i32(primitive_aabbs.size() - 1); i > 0 ; i--)
         {
             // expand bounds first since in the left sweep we expanded bounds *after* getting the AABB
             //   - this results in the left having empty AABB in the 0th element, and AABB containing 
             //     everything except the last primitive in the last element. This means we have to start
             //     the right loop by expanding the right AABB to contain the last primtive. This is guaranteed
-            //     to check all the possible combinations as having left AABB contain all of the primitives
-            //     is equivalent with the right AABB containing all of the primitive  
+            //     to check all the possible combinations except for the case where left/right would contain the
+            //     entire scene  
             right_sweep_aabb.expand_bounds(primitive_aabbs.at(i).aabb);
 
             f32 cost = SAH({
@@ -304,6 +313,11 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
         {
             auto centroid_first = first.aabb.get_axis_centroid(static_cast<Axis>(info.split.axis));
             auto centroid_second = second.aabb.get_axis_centroid(static_cast<Axis>(info.split.axis));
+            if(centroid_first == centroid_second)
+            {
+                assert(first.aabb.get_area() == second.aabb.get_area());
+                return first.aabb.get_area() < second.aabb.get_area();
+            }
             return centroid_first < centroid_second;
         };
         std::sort(info.primitive_aabbs.begin(), info.primitive_aabbs.end(), compare_op);
@@ -493,6 +507,9 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
                 if(info.primitive_aabbs.at(i).aabb.check_if_valid())
                 {
                     left_primitive_aabbs.emplace_back(info.primitive_aabbs.at(i));
+                }else
+                {
+                    DEBUG_OUT("discarding primitive");
                 }
             }
             for(int i = split_event; i < info.primitive_aabbs.size(); i++)
@@ -501,12 +518,11 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
                 {
                     right_primitive_aabbs.emplace_back(info.primitive_aabbs.at(i));
                 }
+                else
+                {
+                    DEBUG_OUT("discarding primitive");
+                }
             }
-            // copy primtives so that:  left <= [begin, split_event) ; [split_event, end) => right
-            //   - this is correct because when finding the object split we store the best event *after* expanding the right AABB,
-            //     so the event must belong to the right aabb not the left (event being the splitting primitive)
-            // std::copy(info.primitive_aabbs.begin(), info.primitive_aabbs.begin() + split_event, std::back_inserter(left_primitive_aabbs));
-            // std::copy(info.primitive_aabbs.begin() + split_event, info.primitive_aabbs.end(), std::back_inserter(right_primitive_aabbs));
             return {left_primitive_aabbs, right_primitive_aabbs};
         }
         case SplitType::SPATIAL:
@@ -520,19 +536,19 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
 static i32 leaf_count = 0;
 auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> void
 {
+    bvh_nodes.clear();
+    bvh_leaves.clear();
     leaf_count = 0;
     // Generate vector of Primitive AABBs from the vector of primitives
     std::vector<PrimitiveAABB> primitive_aabbs;
     primitive_aabbs.reserve(primitives.size());
-    auto primitives_it = primitives.begin();
-    std::generate_n(std::back_inserter(primitive_aabbs), primitives.size(), [&]
+    for(int i = 0; i < primitives.size(); i++)
     {
-        return PrimitiveAABB
-        {
-            .aabb = AABB(*primitives_it),
-            .primitive = &(*(primitives_it++))
-        };
-    });
+        primitive_aabbs.emplace_back(PrimitiveAABB{
+            .aabb = AABB(primitives.at(i)),
+            .primitive = &primitives.at(i)
+        });
+    }
 
     // Calculate the AABB of the scene -> stored in root node
     const u32 root_node_idx = 0;
@@ -562,7 +578,8 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
             .ray_primitive_cost = info.ray_primitive_intersection_cost,
             .ray_aabb_test_cost = info.ray_aabb_intersection_cost,
             .node_idx = node_idx,
-            .primitive_aabbs = primitive_aabbs
+            .primitive_aabbs = primitive_aabbs,
+            .join_leaves = info.join_leaves
         });
 
         if(best_split.axis == Axis::LAST)
@@ -667,14 +684,25 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
         
         if(node.left_index > 0) 
         {
-            que.push({depth + 1u, bvh_nodes.at(node.right_index)});
-            if(node.right_index != 0) {que.push({depth + 1u, bvh_nodes.at(node.left_index)});}
-#ifdef VISUALIZE_SPATIAL_SPLITS
-            else { info.back().spatial = 3; }
+            que.push({depth + 1u, bvh_nodes.at(node.left_index)});
+            if(node.right_index != 0)
+            {
+                que.push({depth + 1u, bvh_nodes.at(node.right_index)});
+            }
+            else 
+            { 
+                // NOTE(msakmary) should not happen
+                assert(false);
+            }
         }
+#ifdef VISUALIZE_SPATIAL_SPLITS
         else if (node.left_index < 0) { info.back().spatial = 2; }
-        else { info.back().spatial = 3; }
 #endif
+        else 
+        {
+            // NOTE(msakmary) should not happen
+            assert(false);
+        }
         que.pop();
     }
     return info;
@@ -716,7 +744,7 @@ auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
         auto [node_idx, intersect_distance] = nodes_queue.top();
         nodes_queue.pop();
         // nearest AABB intersection is farther than nearest primitive hit, stop tracing
-        if(intersect_distance > nearest_hit.distance) { break; }
+        // if(intersect_distance > nearest_hit.distance) { break; }
 
         const auto curr_node = bvh_nodes.at(node_idx);
 
@@ -741,7 +769,7 @@ auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
             for(const Triangle * leaf_primitive : leaf.primitives)
             {
                 auto leaf_hit = leaf_primitive->intersect_ray(ray);
-                if(leaf_hit.distance < nearest_hit.distance)
+                if(leaf_hit.hit && leaf_hit.distance < nearest_hit.distance)
                 {
                     nearest_hit = leaf_hit;
                 }

@@ -133,14 +133,7 @@ Scene::Scene(const std::string & scene_path)
     process_scene(scene);
 }
 
-void Scene::build_bvh(const BuildBVHInfo & info)
+void Scene::build_bvh(const ConstructBVHInfo & info)
 {
-    raytracing_scene.bvh.construct_bvh_from_data(
-        raytracing_scene.primitives, ConstructBVHInfo{
-            .ray_primitive_intersection_cost = 2.0f,
-            .ray_aabb_intersection_cost = 3.0f,
-            .spatial_bin_count = 8u,
-            .spatial_alpha = 1.0f
-        }
-    );
+    raytracing_scene.bvh.construct_bvh_from_data( raytracing_scene.primitives, info);
 }

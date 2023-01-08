@@ -65,6 +65,7 @@ struct SAHGreedySplitInfo
     const float ray_aabb_test_cost;
     const u32 & node_idx;
     std::vector<PrimitiveAABB> & primitive_aabbs;
+    const bool join_leaves;
 };
 
 struct SpatialSplitInfo
@@ -102,6 +103,7 @@ struct ConstructBVHInfo
     f32 ray_aabb_intersection_cost;
     u32 spatial_bin_count;
     f32 spatial_alpha;
+    bool join_leaves;
 };
 
 struct CreateLeafInfo

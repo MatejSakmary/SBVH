@@ -45,17 +45,13 @@ struct ProcessMeshInfo
     RuntimeSceneObject & object;
 };
 
-struct BuildBVHInfo
-{
-};
-
 struct Scene
 {
     std::vector<RuntimeSceneObject> runtime_scene_objects;
     RaytracingScene raytracing_scene;
 
     explicit Scene(const std::string & scene_path);
-    void build_bvh(const BuildBVHInfo & info);
+    void build_bvh(const ConstructBVHInfo & info);
 
     private:
         void process_scene(const aiScene * scene);

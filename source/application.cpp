@@ -102,9 +102,8 @@ void Application::ui_update()
 
     ImGui::Begin("Render controls window");
     if (ImGui::Button("Reload Scene", {100, 20})) { state.file_browser.Open(); }
-    if (ImGui::Button("Rebuild BVH", {100, 20})) { rebuild_bvh({}); }
     if (ImGui::Button("Raytrace View", {100, 20})) { raytracer.raytrace_scene(scene, camera); }
-    ImGui::SliderInt("BVH depth", &state.visualized_depth, 0, 20);
+    ImGui::InputInt("BVH depth", &state.visualized_depth, 1, 10);
     renderer.set_bvh_visualization_depth(state.visualized_depth);
     ImGui::End();
 
@@ -114,6 +113,17 @@ void Application::ui_update()
     ImGui::Text("%s", glm::to_string(camera.get_camera_position()).c_str());
     ImGui::End();
 
+    ImGui::Begin("BVH build parameters");
+    i32 slider_tmp = state.bvh_info.spatial_bin_count;
+    ImGui::InputFloat("Ray-triangle cost", &state.bvh_info.ray_primitive_intersection_cost);
+    ImGui::InputFloat("Ray-AABB cost", &state.bvh_info.ray_aabb_intersection_cost);
+    ImGui::SliderInt("Spatial Splits", &slider_tmp, 0, 256);
+    ImGui::InputFloat("Spatial alpha", &state.bvh_info.spatial_alpha, 0.0001f, 0.001f, "%.6f");
+    ImGui::Checkbox("Join leaves", &state.bvh_info.join_leaves);
+    if (ImGui::Button("Rebuild BVH", {100, 20})) { rebuild_bvh(state.bvh_info); }
+    ImGui::End();
+
+    state.bvh_info.spatial_bin_count = slider_tmp;
 
     state.file_browser.Display();
 
@@ -140,7 +150,14 @@ Application::Application() :
     }),
     state{ 
         .minimized = 0u,
-        .file_browser = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal)
+        .file_browser = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal),
+        .bvh_info = ConstructBVHInfo{
+            .ray_primitive_intersection_cost = 2.0f,
+            .ray_aabb_intersection_cost = 3.0f,
+            .spatial_bin_count = 8,
+            .spatial_alpha = 10e-5,
+            .join_leaves = true
+        }
     },
     renderer{window},
     camera {{
@@ -164,7 +181,7 @@ void Application::reload_scene(const std::string & path)
     renderer.reload_bvh_data(scene.raytracing_scene.bvh);
 }
 
-void Application::rebuild_bvh(const BuildBVHInfo & info)
+void Application::rebuild_bvh(const ConstructBVHInfo & info)
 {
     scene.build_bvh(info);
     renderer.reload_bvh_data(scene.raytracing_scene.bvh);

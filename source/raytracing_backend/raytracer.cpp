@@ -21,11 +21,13 @@ auto Raytracer::raytrace_scene(const Scene & scene, const Camera & camera) -> vo
 {
     for(u32 y = 0; y < resolution.y; y++)
     {
-        std::cout << "progress " << u32((f32(y)/f32(resolution.y)) * 100.0f) << "%\r" << std::flush; 
+        DEBUG_OUT("progress " << u32((f32(y)/f32(resolution.y)) * 100.0f) << "%\r" << std::flush); 
         for(u32 x = 0; x < resolution.x; x++)
         {
             f32vec3 color = ray_gen(scene, camera.get_ray({x, y}, resolution));
-            color_buffer.at(y * resolution.x + x) = color; 
+            //NOTE(msakmary) flip the image along the X axis (so it's not upside down)
+            color_buffer.at((resolution.y - y - 1) * resolution.x + x) = color; 
+            // color_buffer.at(y * resolution.x + x) = color; 
         }
     }
     export_image();

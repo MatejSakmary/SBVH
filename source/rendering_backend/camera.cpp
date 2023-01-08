@@ -10,7 +10,7 @@ Camera::Camera(const CameraInfo & info) :
 auto Camera::get_ray(u32vec2 screen_coords, u32vec2 resolution) const -> Ray
 {
     f32 fov_tan = glm::tan(fov / 2.0f);
-    f32vec3 right = glm::cross(up, front);
+    f32vec3 right = glm::cross(front, up);
     f32vec3 right_aspect_correct = right * aspect_ratio;
     f32vec3 right_aspect_fov_correct = right_aspect_correct * fov_tan;
 
