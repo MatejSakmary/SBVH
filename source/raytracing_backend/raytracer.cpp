@@ -28,7 +28,7 @@ auto Raytracer::raytrace_scene(const Scene & scene, const Camera & camera) -> vo
 auto Raytracer::ray_gen(const Scene & scene, const Ray & ray) -> f32vec3
 {
     auto hit = trace_ray(scene, ray);
-    if(hit.hit) { return f32vec3(1.0f, 0.0f, 0.0f); } 
+    if(hit.hit) { return (hit.normal + f32vec3(1.0f)) / 2.0f; } 
     else        { return f32vec3(0.0f, 0.0f, 0.0f); }
 }
 

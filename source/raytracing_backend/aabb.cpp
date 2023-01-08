@@ -67,6 +67,11 @@ auto AABB::get_area() const -> f32
 auto AABB::ray_box_intersection(Ray ray) const -> Hit
 {
     Hit result;
+    result.internal_fac = 1.0f;
+    result.hit = false;
+    result.distance = INFINITY;
+    result.normal = f32vec3(0.0f, 0.0f, 0.0f);
+
     f32vec3 inverted_direction = 1.0f / ray.direction;
 
     f32 tx1 = (min_bounds.x - ray.start.x) * inverted_direction.x;
@@ -85,12 +90,12 @@ auto AABB::ray_box_intersection(Ray ray) const -> Hit
     result.hit = false;
     if (tmax >= tmin) {
         if (tmin > 0) {
-            result.hit_distance = tmin;
+            result.distance = tmin;
             result.hit = true;
         } else if (tmax > 0) {
-            result.hit_distance = tmax;
+            result.distance = tmax;
             result.hit = true;
-            result.hit_internal_fac = -1.0;
+            result.internal_fac = -1.0;
             tmin = tmax;
         }
     }
@@ -101,24 +106,24 @@ auto AABB::ray_box_intersection(Ray ray) const -> Hit
 
     if (is_z) {
         if (ray.direction.z < 0) {
-            result.hit_normal = f32vec3(0, 0, 1);
+            result.normal = f32vec3(0, 0, 1);
         } else {
-            result.hit_normal = f32vec3(0, 0, -1);
+            result.normal = f32vec3(0, 0, -1);
         }
     } else if (is_y) {
         if (ray.direction.y < 0) {
-            result.hit_normal = f32vec3(0, 1, 0);
+            result.normal = f32vec3(0, 1, 0);
         } else {
-            result.hit_normal = f32vec3(0, -1, 0);
+            result.normal = f32vec3(0, -1, 0);
         }
     } else {
         if (ray.direction.x < 0) {
-            result.hit_normal = f32vec3(1, 0, 0);
+            result.normal = f32vec3(1, 0, 0);
         } else {
-            result.hit_normal = f32vec3(-1, 0, 0);
+            result.normal = f32vec3(-1, 0, 0);
         }
     }
-    result.hit_normal *= result.hit_internal_fac;
+    result.normal *= result.internal_fac;
 
     return result;
 }

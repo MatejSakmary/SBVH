@@ -66,6 +66,10 @@ void main()
 {
     f32vec4 color = f32vec4(1.0, 1.0, 1.0, 1.0);
 #if defined(VISUALIZE_SPATIAL_SPLITS)
+    if(spatial == 2)
+    {
+        color = f32vec4(1.0, 0.0, 0.0, 1.0);
+    }
     if(spatial == 1)
     {
         color = f32vec4(0.0, 0.0, 1.0, 1.0);

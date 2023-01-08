@@ -62,9 +62,9 @@ enum Direction
 struct Hit
 {
     bool hit;
-    f32vec3 hit_normal;
-    f32 hit_internal_fac;
-    f32 hit_distance;
+    f32 distance;
+    f32vec3 normal;
+    f32 internal_fac;
 };
 
 struct Ray

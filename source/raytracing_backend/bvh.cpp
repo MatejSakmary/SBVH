@@ -682,9 +682,73 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
 
 auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
 {
-    // NOTE(msakmary) check if I hit aabb for now
     const auto & root_node = bvh_nodes.at(0);
-    return root_node.bounding_box.ray_box_intersection(ray);
+
+    auto hit = root_node.bounding_box.ray_box_intersection(ray);
+    // The ray missed the scene
+    if(!hit.hit) { return hit; }
+
+    Hit nearest_hit = Hit {
+        .hit = false,
+        .distance = INFINITY,
+        .normal = f32vec3(0.0f, 0.0f, 0.0f),
+        .internal_fac = 1.0f
+    };
+    // Node consists of the bvh_node index and the intersection distance
+    using Node = std::pair<i32, f32>;
+    auto comparator = [](const Node & first, const Node & second) -> bool
+    {
+        return first.second > second.second;
+    };
+
+    std::priority_queue<Node, std::vector<Node>, decltype(comparator)> nodes_queue(comparator);
+
+    // NOTE(msakmary) Why would you have bvh with two leaves?? STOP
+    assert(root_node.left_index > 0 && root_node.right_index > 0);
+
+    hit = bvh_nodes.at(root_node.left_index).bounding_box.ray_box_intersection(ray);
+    if(hit.hit) { nodes_queue.emplace(root_node.left_index, hit.distance); }
+    hit = bvh_nodes.at(root_node.right_index).bounding_box.ray_box_intersection(ray);
+    if(hit.hit) { nodes_queue.emplace(root_node.right_index, hit.distance); }
+
+    while(!nodes_queue.empty())
+    {
+        auto [node_idx, intersect_distance] = nodes_queue.top();
+        nodes_queue.pop();
+        // nearest AABB intersection is farther than nearest primitive hit, stop tracing
+        if(intersect_distance > nearest_hit.distance) { break; }
+
+        const auto curr_node = bvh_nodes.at(node_idx);
+
+        // Nodes are not leaves so find the intersection and add it to the queue for processing
+        if(curr_node.left_index > 0)
+        {
+            hit = bvh_nodes.at(curr_node.left_index).bounding_box.ray_box_intersection(ray);
+            if(hit.hit) { nodes_queue.emplace(curr_node.left_index, hit.distance); }
+
+            if(curr_node.right_index > 0)
+            {
+                hit = bvh_nodes.at(curr_node.right_index).bounding_box.ray_box_intersection(ray);
+                if(hit.hit) { nodes_queue.emplace(curr_node.right_index, hit.distance); }
+            }
+        }
+
+        // Node is a leaf intersect all primitives and compare the intersections with the best hit found so far
+        if(curr_node.left_index == -1)
+        {
+            const auto & leaf = bvh_leaves.at(curr_node.right_index);
+
+            for(const Triangle * leaf_primitive : leaf.primitives)
+            {
+                auto leaf_hit = leaf_primitive->intersect_ray(ray);
+                if(leaf_hit.distance < nearest_hit.distance)
+                {
+                    nearest_hit = leaf_hit;
+                }
+            }
+        }
+    }
+    return nearest_hit;
 }
 
 auto SAH(const SAHCalculateInfo & info) -> f32
