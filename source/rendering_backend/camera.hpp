@@ -8,10 +8,15 @@ struct CameraInfo
     const f32vec3 position;
     const f32vec3 front;
     const f32vec3 up;
+    const f32 aspect_ratio;
+    const f32 fov;
 };
 
 struct Camera
 {
+    f32 aspect_ratio;
+    f32 fov;
+
     explicit Camera(const CameraInfo & info);
 
     void move_camera(f32 delta_time, Direction direction);

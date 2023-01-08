@@ -119,7 +119,7 @@ inline void task_draw_scene(RendererContext & context)
                             std::span<daxa::f32, 4 * 4>{glm::value_ptr(object.model_transform), 4 * 4})
                     });
                     cmd_list.set_index_buffer(index_buffer[0], sizeof(u32) * (mesh.index_buffer_offset) , sizeof(u32));
-                    cmd_list.draw_indexed({ .index_count = mesh.index_count });
+                    cmd_list.draw_indexed({ .index_count = mesh.index_count});
                 }
             }
             cmd_list.end_renderpass();

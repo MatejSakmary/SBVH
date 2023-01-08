@@ -1,7 +1,7 @@
 #include "camera.hpp"
 
 Camera::Camera(const CameraInfo & info) : 
-    position{info.position}, front{info.front}, up{info.up},
+    position{info.position}, front{info.front}, up{info.up}, aspect_ratio{info.aspect_ratio}, fov{info.fov},
     speed{100.0f}, pitch{0.0f}, yaw{-90.0f}, sensitivity{0.08f}, 
     roll_sensitivity{20.0f}, roll{0.0f}
 {
@@ -9,11 +9,15 @@ Camera::Camera(const CameraInfo & info) :
 
 auto Camera::get_ray(u32vec2 screen_coords, u32vec2 resolution) const -> Ray
 {
+    f32 fov_tan = glm::tan(fov / 2.0f);
     f32vec3 right = glm::cross(up, front);
-    f32vec3 right_aspect_correct = right * (f32(resolution.x) / f32(resolution.y));
+    f32vec3 right_aspect_correct = right * aspect_ratio;
+    f32vec3 right_aspect_fov_correct = right_aspect_correct * fov_tan;
 
-    f32vec3 right_offset = right_aspect_correct * (2.0f * ((screen_coords.x + 0.5f) / resolution.x) - 1.0f);
-    f32vec3 up_offset = up * (2.0f * ((screen_coords.y + 0.5f) / resolution.y) - 1.0f);
+    f32vec3 up_fov_correct = up * fov_tan;
+
+    f32vec3 right_offset = right_aspect_fov_correct * (2.0f * ((screen_coords.x + 0.5f) / resolution.x) - 1.0f);
+    f32vec3 up_offset = up_fov_correct * (2.0f * ((screen_coords.y + 0.5f) / resolution.y) - 1.0f);
 
     f32vec3 direction = front + right_offset + up_offset;
     

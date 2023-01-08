@@ -180,8 +180,7 @@ void Renderer::resize()
 void Renderer::draw(const Camera & camera)
 {
     // ==============  TODO(msakmary) move this somewhere where it belongs ==================
-    f32 aspect = f32(context.swapchain.get_surface_extent().x) / f32(context.swapchain.get_surface_extent().y);
-    f32mat4x4 m_proj = glm::perspective(glm::radians(50.0f), aspect, 0.1f, 5000.0f);
+    f32mat4x4 m_proj = glm::perspective(camera.fov, camera.aspect_ratio, 0.1f, 5000.0f);
     /* GLM is using OpenGL standard where Y coordinate of the clip coordinates is inverted */
     m_proj[1][1] *= -1;
     auto m_view = camera.get_view_matrix();

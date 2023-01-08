@@ -33,6 +33,8 @@ void Application::mouse_button_callback(const i32 button, const i32 action, cons
 void Application::window_resize_callback(const i32 width, const i32 height)
 {
     renderer.resize();
+    raytracer.update_resolution(u32vec2{u32(width), u32(height)});
+    camera.aspect_ratio = f32(width) / f32(height);
 }
 
 void Application::key_callback(const i32 key, const i32 code, const i32 action, const i32 mods)
@@ -141,7 +143,13 @@ Application::Application() :
         .file_browser = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal)
     },
     renderer{window},
-    camera {{.position = {0.0, 0.0, 500.0}, .front = {0.0, 0.0, -1.0}, .up = {0.0, 1.0, 0.0}}},
+    camera {{
+        .position = {0.0, 0.0, 500.0},
+        .front = {0.0, 0.0, -1.0},
+        .up = {0.0, 1.0, 0.0}, 
+        .aspect_ratio = 1080.0f/720.0f,
+        .fov = glm::radians(50.0f)
+    }},
     scene{"resources/scenes/cubes/cubes.fbx"},
     raytracer{{1080, 720}}
 {

@@ -6,6 +6,12 @@ Raytracer::Raytracer(u32vec2 resolution) :
     resolution(resolution),
     color_buffer(resolution.x * resolution.y * 3) {}
 
+auto Raytracer::update_resolution(u32vec2 new_resolution) -> void
+{
+    resolution = new_resolution;
+    color_buffer.resize(new_resolution.x * new_resolution.y * 3);
+}
+
 auto Raytracer::export_image() -> void
 {
     stbi_write_hdr("out.hdr", resolution.x, resolution.y, 3, reinterpret_cast<float*>(color_buffer.data()));
