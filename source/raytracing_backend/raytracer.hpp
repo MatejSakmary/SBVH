@@ -3,6 +3,13 @@
 #include "../rendering_backend/camera.hpp"
 #include "scene.hpp"
 
+struct PhongInfo{
+    f32vec3 light_position;
+    f32vec3 hit_position;
+    f32vec3 hit_normal;
+    const Ray & ray;
+};
+
 struct Raytracer
 {
     std::vector<f32vec3> color_buffer;
@@ -17,5 +24,6 @@ struct Raytracer
 
         auto ray_gen(const Scene & scene, const Ray & ray) -> f32vec3;
         auto trace_ray(const Scene & scene, const Ray & ray) -> Hit;
+        auto phong(const PhongInfo & info) -> f32vec3;
 };
 

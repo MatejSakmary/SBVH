@@ -247,7 +247,7 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInf
             auto centroid_second = second.aabb.get_axis_centroid(static_cast<Axis>(axis));
             if(centroid_first == centroid_second)
             {
-                assert(first.aabb.get_area() == second.aabb.get_area());
+                // assert(first.aabb.get_area() == second.aabb.get_area());
                 return first.aabb.get_area() < second.aabb.get_area();
             }
             return centroid_first < centroid_second;
@@ -315,7 +315,7 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             auto centroid_second = second.aabb.get_axis_centroid(static_cast<Axis>(info.split.axis));
             if(centroid_first == centroid_second)
             {
-                assert(first.aabb.get_area() == second.aabb.get_area());
+                // assert(first.aabb.get_area() == second.aabb.get_area());
                 return first.aabb.get_area() < second.aabb.get_area();
             }
             return centroid_first < centroid_second;
@@ -692,7 +692,7 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
             else 
             { 
                 // NOTE(msakmary) should not happen
-                assert(false);
+                // assert(false);
             }
         }
 #ifdef VISUALIZE_SPATIAL_SPLITS
@@ -701,7 +701,7 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
         else 
         {
             // NOTE(msakmary) should not happen
-            assert(false);
+            // assert(false);
         }
         que.pop();
     }
@@ -735,16 +735,16 @@ auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
     assert(root_node.left_index > 0 && root_node.right_index > 0);
 
     hit = bvh_nodes.at(root_node.left_index).bounding_box.ray_box_intersection(ray);
-    if(hit.hit) { nodes_queue.emplace(root_node.left_index, hit.distance); }
+    if(hit.hit) { nodes_queue.emplace(root_node.left_index, hit.distance * hit.internal_fac); }
     hit = bvh_nodes.at(root_node.right_index).bounding_box.ray_box_intersection(ray);
-    if(hit.hit) { nodes_queue.emplace(root_node.right_index, hit.distance); }
+    if(hit.hit) { nodes_queue.emplace(root_node.right_index, hit.distance * hit.internal_fac); }
 
     while(!nodes_queue.empty())
     {
         auto [node_idx, intersect_distance] = nodes_queue.top();
         nodes_queue.pop();
         // nearest AABB intersection is farther than nearest primitive hit, stop tracing
-        // if(intersect_distance > nearest_hit.distance) { break; }
+        if(intersect_distance > nearest_hit.distance) { break; }
 
         const auto curr_node = bvh_nodes.at(node_idx);
 
@@ -752,12 +752,12 @@ auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
         if(curr_node.left_index > 0)
         {
             hit = bvh_nodes.at(curr_node.left_index).bounding_box.ray_box_intersection(ray);
-            if(hit.hit) { nodes_queue.emplace(curr_node.left_index, hit.distance); }
+            if(hit.hit) { nodes_queue.emplace(curr_node.left_index, hit.distance * hit.internal_fac); }
 
             if(curr_node.right_index > 0)
             {
                 hit = bvh_nodes.at(curr_node.right_index).bounding_box.ray_box_intersection(ray);
-                if(hit.hit) { nodes_queue.emplace(curr_node.right_index, hit.distance); }
+                if(hit.hit) { nodes_queue.emplace(curr_node.right_index, hit.distance * hit.internal_fac); }
             }
         }
 
