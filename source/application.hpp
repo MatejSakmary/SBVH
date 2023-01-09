@@ -28,14 +28,16 @@ struct Application
             } bits;
         };
 
-        f64 last_frame_time = 0.0f;
-        f64 delta_time = 0.0f;
+        f64 last_frame_time = 0.0;
+        f64 delta_time = 0.0;
         b32 minimized = 0u;
         b32 fly_cam = 0u;
         b32 first_input = 1u;
+        f64 raytrace_time = 0.0;
         f32vec2 last_mouse_pos;
         ImGui::FileBrowser file_browser;
         ConstructBVHInfo bvh_info;
+        BVHStats bvh_stats;
 
         i32 visualized_depth;
 
@@ -55,7 +57,6 @@ struct Application
         Camera camera;
         Scene scene;
         Raytracer raytracer;
-
 
         void init_window();
         void mouse_callback(const f64 x, const f64 y);

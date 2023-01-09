@@ -106,8 +106,19 @@ struct ConstructBVHInfo
     bool join_leaves;
 };
 
+struct BVHStats
+{
+    u32 triangle_count;
+    u32 inner_node_count;
+    u32 leaf_primitives_count;
+    u32 leaf_count;
+    f32 total_cost;
+    f64 build_time;
+};
+
 struct CreateLeafInfo
 {
+    BVHStats & stats;
     u32 node_idx;
     std::vector<PrimitiveAABB> & primitives;
 };
@@ -118,7 +129,7 @@ struct BVH
     static auto project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void;
     [[nodiscard]] auto get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>;
 
-    auto construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> void;
+    auto construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> BVHStats;
     [[nodiscard]] auto get_nearest_intersection(const Ray & ray) const -> Hit;
 
     private:

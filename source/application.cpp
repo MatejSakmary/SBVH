@@ -102,15 +102,25 @@ void Application::ui_update()
 
     ImGui::Begin("Render controls window");
     if (ImGui::Button("Reload Scene", {100, 20})) { state.file_browser.Open(); }
-    if (ImGui::Button("Raytrace View", {100, 20})) { raytracer.raytrace_scene(scene, camera); }
+    if (ImGui::Button("Raytrace View", {100, 20})) { state.raytrace_time = raytracer.raytrace_scene(scene, camera); }
     ImGui::InputInt("BVH depth", &state.visualized_depth, 1, 10);
     renderer.set_bvh_visualization_depth(state.visualized_depth);
     ImGui::End();
 
-    ImGui::Begin("Camera Info");
+    ImGui::Begin("Info");
     ImGui::Text("Camera position is: ");
     ImGui::SameLine();
     ImGui::Text("%s", glm::to_string(camera.get_camera_position()).c_str());
+
+    ImGui::Separator();
+    ImGui::Text("triangle count : %u", state.bvh_stats.triangle_count);
+    ImGui::Text("inner node_count : %u", state.bvh_stats.inner_node_count);
+    ImGui::Text("leaf primitives_count : %u", state.bvh_stats.leaf_primitives_count);
+    ImGui::Text("leaf count : %u", state.bvh_stats.leaf_count);
+    ImGui::Text("total cost : %.3f", state.bvh_stats.total_cost);
+    ImGui::Text("build time : %.3f ms", state.bvh_stats.build_time);
+    ImGui::Separator();
+    ImGui::Text("raytrace time : %.3f ms", state.raytrace_time);
     ImGui::End();
 
     ImGui::Begin("BVH build parameters");
@@ -177,13 +187,15 @@ Application::Application() :
 void Application::reload_scene(const std::string & path)
 {
     scene = Scene(path);
+    state.bvh_stats = {};
+    state.raytrace_time = 0.0;
     renderer.reload_scene_data(scene);
     renderer.reload_bvh_data(scene.raytracing_scene.bvh);
 }
 
 void Application::rebuild_bvh(const ConstructBVHInfo & info)
 {
-    scene.build_bvh(info);
+    state.bvh_stats = scene.build_bvh(info);
     renderer.reload_bvh_data(scene.raytracing_scene.bvh);
 }
 

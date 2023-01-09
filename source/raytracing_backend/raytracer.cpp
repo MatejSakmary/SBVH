@@ -19,7 +19,7 @@ auto Raytracer::export_image() -> void
     stbi_write_hdr("out.hdr", resolution.x, resolution.y, 3, reinterpret_cast<float*>(color_buffer.data()));
 }
 
-auto Raytracer::raytrace_scene(const Scene & scene, const Camera & camera) -> void
+auto Raytracer::raytrace_scene(const Scene & scene, const Camera & camera) -> f64
 {
 
     const int num_threads = std::thread::hardware_concurrency() * 2;
@@ -40,6 +40,7 @@ auto Raytracer::raytrace_scene(const Scene & scene, const Camera & camera) -> vo
     threads.reserve(num_threads);
     int chunk = resolution.y / num_threads;
     int remainder = resolution.y % num_threads;
+    auto start_time = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < num_threads; i++)
     {
         if(i != num_threads - 1)
@@ -54,7 +55,10 @@ auto Raytracer::raytrace_scene(const Scene & scene, const Camera & camera) -> vo
     {
         threads.at(i).join();
     }
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_double = end_time - start_time;
     export_image();
+    return ms_double.count();
 }
 
 auto Raytracer::phong(const PhongInfo & info) -> f32vec3

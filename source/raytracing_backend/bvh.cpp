@@ -1,5 +1,6 @@
 #include "bvh.hpp"
 
+#include <chrono>
 #include <algorithm>
 #include <cassert>
 #include <glm/common.hpp>
@@ -533,12 +534,19 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
     return {};
 }
 
-static i32 leaf_count = 0;
-auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> void
+auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> BVHStats
 {
+    BVHStats stats = BVHStats {
+        .triangle_count = 0,
+        .inner_node_count = 0,
+        .leaf_primitives_count = 0,
+        .leaf_count = 0,
+        .total_cost = 0.0f,
+        .build_time = 0.0
+    };
+    auto start_time = std::chrono::high_resolution_clock::now();
     bvh_nodes.clear();
     bvh_leaves.clear();
-    leaf_count = 0;
     // Generate vector of Primitive AABBs from the vector of primitives
     std::vector<PrimitiveAABB> primitive_aabbs;
     primitive_aabbs.reserve(primitives.size());
@@ -567,6 +575,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
         if(primitive_aabbs.size() == 1) 
         { 
             create_leaf({
+                .stats = stats,
                 .node_idx = node_idx,
                 .primitives = primitive_aabbs
             }); 
@@ -586,6 +595,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
         {
             DEBUG_OUT("Early leaf with primitive count " + std::to_string(primitive_aabbs.size()) + " node index " + std::to_string(node_idx));
             create_leaf({
+                .stats = stats,
                 .node_idx = node_idx,
                 .primitives = primitive_aabbs
             });
@@ -630,6 +640,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
             DEBUG_OUT("best spatial event unsplit with primitive count " + std::to_string(primitive_aabbs.size()) + " node index " + std::to_string(node_idx));
         }
 #endif
+        stats.total_cost += best_split.cost;
 
         auto [left_primitive_aabbs, right_primitive_aabbs] = split_node({
             .split = best_split,
@@ -643,13 +654,20 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
         if(right_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).right_index, std::move(right_primitive_aabbs));}
         nodes.pop();
     }
-    DEBUG_OUT("BVH Built - triangle count: " + std::to_string(primitives.size()) + " leaf count: " + std::to_string(bvh_leaves.size()) + " primitives in leaves " + std::to_string(leaf_count));
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_double = end_time - start_time;
+    stats.build_time = ms_double.count();
+    stats.inner_node_count = bvh_nodes.size() - bvh_leaves.size();
+    stats.triangle_count = primitives.size();
+    stats.leaf_count = bvh_leaves.size();
+
+    return stats;
 }
 
 auto BVH::create_leaf(const CreateLeafInfo & info) -> void
 {
     auto & leaf = bvh_leaves.emplace_back();
-    leaf_count += info.primitives.size();
+    info.stats.leaf_primitives_count += info.primitives.size();
     for(const auto & primitiveAABB : info.primitives)
     {
         leaf.primitives.push_back(primitiveAABB.primitive);

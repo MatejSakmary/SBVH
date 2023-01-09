@@ -51,7 +51,7 @@ struct Scene
     RaytracingScene raytracing_scene;
 
     explicit Scene(const std::string & scene_path);
-    void build_bvh(const ConstructBVHInfo & info);
+    auto build_bvh(const ConstructBVHInfo & info) -> BVHStats;
 
     private:
         void process_scene(const aiScene * scene);

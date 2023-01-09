@@ -15,7 +15,7 @@ struct Raytracer
     std::vector<f32vec3> color_buffer;
 
     Raytracer(const u32vec2 resolution);
-    auto raytrace_scene(const Scene & scene, const Camera & camera) -> void;
+    auto raytrace_scene(const Scene & scene, const Camera & camera) -> f64;
     auto export_image() -> void;
     auto update_resolution(u32vec2 resolution) -> void;
 
