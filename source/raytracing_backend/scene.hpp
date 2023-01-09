@@ -47,6 +47,8 @@ struct ProcessMeshInfo
 
 struct Scene
 {
+    f32vec3 light_position;
+
     std::vector<RuntimeSceneObject> runtime_scene_objects;
     RaytracingScene raytracing_scene;
 

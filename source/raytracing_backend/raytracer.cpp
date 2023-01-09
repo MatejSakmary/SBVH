@@ -82,8 +82,7 @@ auto Raytracer::phong(const PhongInfo & info) -> f32vec3
 auto Raytracer::ray_gen(const Scene & scene, const Ray & ray) -> f32vec3
 {
 
-    //TODO(msakmary) TEMPORARY!!
-    const f32vec3 light_position = f32vec3(-11.0f, 15.0f, 7.0f);
+    const f32vec3 light_position = scene.light_position;
     auto hit = trace_ray(scene, ray);
     if(!hit.hit) 
     {

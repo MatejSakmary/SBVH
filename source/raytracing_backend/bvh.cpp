@@ -447,13 +447,13 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
                 {
                     left_aabb = expanded_left_aabb;
                     assert(clipped_left_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_left_primitive_aabb.min_bounds != f32vec3(INFINITY));
-                    left_primitive_aabbs.push_back(PrimitiveAABB(clipped_left_primitive_aabb, border_primitive.primitive));
+                    left_primitive_aabbs.push_back(PrimitiveAABB{clipped_left_primitive_aabb, border_primitive.primitive});
                 }
                 if(expanded_right_aabb.check_if_valid())
                 {
                     right_aabb = expanded_right_aabb;
                     assert(clipped_right_primitive_aabb.max_bounds != f32vec3(-INFINITY) && clipped_right_primitive_aabb.min_bounds != f32vec3(INFINITY));
-                    right_primitive_aabbs.push_back(PrimitiveAABB(clipped_right_primitive_aabb, border_primitive.primitive));
+                    right_primitive_aabbs.push_back(PrimitiveAABB{clipped_right_primitive_aabb, border_primitive.primitive});
                 }
             }
             else if(min_sah == unsplit_left_cost && unsplit_left_aabb.check_if_valid())

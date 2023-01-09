@@ -102,7 +102,17 @@ void Application::ui_update()
 
     ImGui::Begin("Render controls window");
     if (ImGui::Button("Reload Scene", {100, 20})) { state.file_browser.Open(); }
-    if (ImGui::Button("Raytrace View", {100, 20})) { state.raytrace_time = raytracer.raytrace_scene(scene, camera); }
+    if (ImGui::Button("Raytrace View", {100, 20})) 
+    { 
+        scene.light_position = state.light_position;
+        state.raytrace_time = raytracer.raytrace_scene(scene, camera); 
+    }
+    f32 light_pos[] = {state.light_position.x, state.light_position.y, state.light_position.z};
+    ImGui::SliderFloat3("Light position", light_pos, 0.0f, 10000.0f);
+    state.light_position.x = light_pos[0];
+    state.light_position.y = light_pos[1];
+    state.light_position.z = light_pos[2];
+
     ImGui::InputInt("BVH depth", &state.visualized_depth, 1, 10);
     renderer.set_bvh_visualization_depth(state.visualized_depth);
     ImGui::End();
