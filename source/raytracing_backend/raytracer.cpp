@@ -1,4 +1,6 @@
 #include "raytracer.hpp"
+#include <thread>
+
 #include <stb_image.h>
 #include <stb_image_write.h>
 
@@ -19,15 +21,38 @@ auto Raytracer::export_image() -> void
 
 auto Raytracer::raytrace_scene(const Scene & scene, const Camera & camera) -> void
 {
-    for(u32 y = 0; y < resolution.y; y++)
-    {
-        DEBUG_OUT("progress " << u32((f32(y)/f32(resolution.y)) * 100.0f) << "%\r" << std::flush); 
-        for(u32 x = 0; x < resolution.x; x++)
+
+    const int num_threads = std::thread::hardware_concurrency() * 2;
+    // const int num_threads = 1;
+    std::vector<std::thread> threads;
+
+    auto task = [&](int start, int end){
+        for(int y = start; y < end; y++)
         {
-            f32vec3 color = ray_gen(scene, camera.get_ray({x, y}, resolution));
-            //NOTE(msakmary) flip the image along the X axis (so it's not upside down)
-            color_buffer.at((resolution.y - y - 1) * resolution.x + x) = color; 
+            for(uint32_t x = 0; x < resolution.x; x++)
+            {
+                f32vec3 color = ray_gen(scene, camera.get_ray({x, y}, resolution));
+                //NOTE(msakmary) flip the image along the X axis (so it's not upside down)
+                color_buffer.at((resolution.y - y - 1) * resolution.x + x) = color; 
+            }
         }
+    };
+    threads.reserve(num_threads);
+    int chunk = resolution.y / num_threads;
+    int remainder = resolution.y % num_threads;
+    for(int i = 0; i < num_threads; i++)
+    {
+        if(i != num_threads - 1)
+        {
+            threads.push_back(std::thread(task, i * chunk, (i+1) * chunk));
+        } else
+        {
+            threads.push_back(std::thread(task, i * chunk, ((i+1) * chunk) + remainder));
+        }
+    }
+    for(int i = 0; i < num_threads; i++)
+    {
+        threads.at(i).join();
     }
     export_image();
 }
@@ -52,8 +77,9 @@ auto Raytracer::phong(const PhongInfo & info) -> f32vec3
 
 auto Raytracer::ray_gen(const Scene & scene, const Ray & ray) -> f32vec3
 {
+
     //TODO(msakmary) TEMPORARY!!
-    const f32vec3 light_position = f32vec3(100.0f, 500.0f, 0.0f);
+    const f32vec3 light_position = f32vec3(-11.0f, 15.0f, 7.0f);
     auto hit = trace_ray(scene, ray);
     if(!hit.hit) 
     {
