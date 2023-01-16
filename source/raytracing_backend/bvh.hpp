@@ -19,6 +19,13 @@ struct SAHCalculateInfo
 
 auto SAH(const SAHCalculateInfo & info) -> f32;
 
+enum PointClassification
+{
+    ON_NEGATIVE_SIDE,
+    ON_POSITIVE_SIDE,
+    ON_BOUNDARY
+};
+
 enum SplitType
 {
     OBJECT,
@@ -123,10 +130,22 @@ struct CreateLeafInfo
     std::vector<PrimitiveAABB> & primitives;
 };
 
+struct ClipAxisPlaneInfo
+{
+    Polygon * curr_polygon;
+    const Polygon * back_polygon;
+    Axis clip_axis;
+    f32 clip_coord;
+    bool far;
+};
 
 struct BVH
 {
-    static auto project_primitive_into_bin(const ProjectPrimitiveInfo & info) -> void;
+    static auto project_primitive_into_bin_fast(const ProjectPrimitiveInfo & info) -> void;
+    static auto clip_axis_plane(const ClipAxisPlaneInfo & info) -> void;
+    static auto classify_point_axis_plane(const f32vec3 & point, Axis axis, bool far, f32 coord) -> PointClassification;
+    // TODO(msakmary) this is non-static only for debugging purposes, make this static later
+    /*static*/ auto project_primitive_into_bin_slow(const ProjectPrimitiveInfo & info) -> void;
     [[nodiscard]] auto get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>;
 
     auto construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> BVHStats;

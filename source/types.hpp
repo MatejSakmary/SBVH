@@ -46,6 +46,8 @@ using i32vec4 = glm::ivec4;
 
 using f32mat4x4 = glm::mat4x4;
 
+using Polygon = std::vector<f32vec3>;
+
 enum Direction
 {
     FORWARD,

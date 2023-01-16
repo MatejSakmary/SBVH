@@ -128,6 +128,19 @@ auto AABB::ray_box_intersection(Ray ray) const -> Hit
     return result;
 }
 
+auto AABB::contains(const Triangle & primitive) const -> bool
+{
+    for(int i = 0; i < 3; i++)
+    {
+        if(! (glm::all(glm::greaterThan(primitive[i], min_bounds)) &&
+              glm::all(glm::lessThan(primitive[i], max_bounds))))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 auto do_aabbs_intersect(const AABB & first, const AABB & second) -> bool
 {
     if (first.min_bounds.x > second.max_bounds.x ||

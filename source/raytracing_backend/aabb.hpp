@@ -22,6 +22,7 @@ struct AABB
     [[nodiscard]] auto ray_box_intersection(Ray ray) const -> Hit;
     [[nodiscard]] auto check_if_valid() const -> bool;
     [[nodiscard]] auto get_area() const -> f32;
+    [[nodiscard]] auto contains(const Triangle & primitive) const -> bool;
 
     // return the coordinate corresponding to the axis selection 
     [[nodiscard]] inline auto get_axis_centroid(Axis axis) const -> float
