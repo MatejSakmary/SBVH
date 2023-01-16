@@ -2,13 +2,7 @@
   "name": "sbvh",
   "version": "0.0.1",
   "dependencies": [
-    {
-      "name": "daxa",
-      "features": [
-        "glslang",
-        "utils"
-      ]
-    },
+    "daxa",
     {
       "name": "imgui",
       "features": [
@@ -20,7 +14,7 @@
     "assimp",
     "stb"
   ],
-  "builtin-baseline": "5f144173006dbeea7b9cb017775675606666a207",
+  "builtin-baseline": "163fe7bd3d67c41200617caaa245b5ba2ba854e6",
   "overrides": [
     {
       "name": "glfw3",
