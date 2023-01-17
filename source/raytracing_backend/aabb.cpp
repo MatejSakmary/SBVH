@@ -132,8 +132,8 @@ auto AABB::contains(const Triangle & primitive) const -> bool
 {
     for(int i = 0; i < 3; i++)
     {
-        if(! (glm::all(glm::greaterThan(primitive[i], min_bounds)) &&
-              glm::all(glm::lessThan(primitive[i], max_bounds))))
+        if( ! (glm::all(glm::greaterThan(primitive[i], min_bounds)) &&
+               glm::all(glm::lessThan(primitive[i], max_bounds))))
         {
             return false;
         }

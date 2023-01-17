@@ -148,7 +148,7 @@ struct BVH
     /*static*/ auto project_primitive_into_bin_slow(const ProjectPrimitiveInfo & info) -> void;
     [[nodiscard]] auto get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>;
 
-    auto construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> BVHStats;
+    auto construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info, /*NOTE(msakmary) SPATIAL DEBUG */AABB debug_bvh) -> BVHStats;
     [[nodiscard]] auto get_nearest_intersection(const Ray & ray) const -> Hit;
 
     private:

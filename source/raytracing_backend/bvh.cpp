@@ -173,6 +173,10 @@ auto BVH::project_primitive_into_bin_slow(const ProjectPrimitiveInfo & info) -> 
     Polygon * back_polygon = &polygons.at(0);
     Polygon * curr_polygon = &polygons.at(1);
 
+    if(!do_aabbs_intersect(bin_aabb, triangle_aabb))
+    {
+        return;
+    }
     curr_polygon->push_back(info.triangle[0]);
     curr_polygon->push_back(info.triangle[1]);
     curr_polygon->push_back(info.triangle[2]);
@@ -203,30 +207,10 @@ auto BVH::project_primitive_into_bin_slow(const ProjectPrimitiveInfo & info) -> 
         }
     }
 
-    bvh_nodes.push_back(BVHNode{
-        .bounding_box = bin_aabb,
-        .left_index = -1,
-        .right_index = -1,
-        .spatial = spatial_index++
-    });
-    bin_aabb = AABB();
-    for(int i = 0; i < curr_polygon->size(); i++)
+    for(const auto & vertex : *curr_polygon)
     {
-        bvh_nodes.push_back(BVHNode{
-            .bounding_box = AABB(curr_polygon->at(i) - f32vec3(1.0f), curr_polygon->at(i) + f32vec3(1.0f)),
-            .left_index = -1,
-            .right_index = -1,
-            .spatial = spatial_index
-        });
-        bin_aabb.expand_bounds(curr_polygon->at(i));
+        info.left_aabb.expand_bounds(vertex);
     }
-    spatial_index++;
-    bvh_nodes.push_back(BVHNode{
-        .bounding_box = bin_aabb,
-        .left_index = -1,
-        .right_index = -1,
-        .spatial = spatial_index++
-    });
 }
 
 auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
@@ -264,6 +248,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
 
         i32vec3 start_bin_idx = glm::trunc(((primitive_aabb.aabb.min_bounds) - parent_aabb.min_bounds) / bin_size);
         i32vec3 end_bin_idx = glm::trunc(((primitive_aabb.aabb.max_bounds) - parent_aabb.min_bounds) / bin_size);
+        // TODO(msakmary) The error could be in the start/end indices whenever the AABB completely misses the triangle CONTINUE HERE!
         // start_bin_idx and end_bin_idx should be value in the range [0, bin_count - 1]
         start_bin_idx = glm::clamp(start_bin_idx, i32vec3(0), i32vec3(info.bin_count - 1));
         end_bin_idx = glm::clamp(end_bin_idx, i32vec3(0), i32vec3(info.bin_count - 1));
@@ -282,10 +267,10 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
                 bin_aabbs.at(axis).at(start_bin_idx[axis]).expand_bounds(primitive_aabb.aabb);
                 continue;
             }
-            for(i32 bin_idx = i32(start_bin_idx[axis]) - 1; bin_idx <= end_bin_idx[axis]; bin_idx++)
+
+            if(parent_node.bounding_box.contains(*primitive_aabb.primitive))
             {
                 // clip the primitive by the right bin border and expand the bins aabb
-
                 // there are some cases we have to take care of
                 //    - by the way the algorithm is designed we have to run for start_bin_idx - 1 which has no aabb 
                 //      left-of the splitting plane - we pass the aabb right-of splitting plane twice (so as left_aabb and right_aabb)
@@ -294,7 +279,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
                 //      (so as left_aabb and right_aabb)
                 // in both cases the run will not add anything to the right/left aabb respectively so this is ok
 
-                if(parent_node.bounding_box.contains(*primitive_aabb.primitive))
+                for(i32 bin_idx = i32(start_bin_idx[axis]) - 1; bin_idx <= end_bin_idx[axis]; bin_idx++)
                 {
                     project_primitive_into_bin_fast({
                         .triangle = primitive,
@@ -306,7 +291,12 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
                         .right_aabb = bin_aabbs.at(axis).at(glm::min(bin_idx + 1, end_bin_idx[axis]))
                     });
                 } 
-                else 
+            }
+            else 
+            {
+                // Whenever the bounding box does not fully contain the primitive AABB (can happen when for example the triangle was already 
+                // spatially split once) we do a slower but more precise AABB computation
+                for(i32 bin_idx = i32(start_bin_idx[axis]); bin_idx <= end_bin_idx[axis]; bin_idx++)
                 {
                     project_primitive_into_bin_slow({
                         .triangle = primitive,
@@ -321,6 +311,22 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
             }
         }
     }
+
+    // ================= NOTE(msakmary) SPATIAL DEBUG ==============
+    for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
+    {
+        for(i32 i = 0; i < info.bin_count; i++)
+        {
+            bvh_nodes.emplace_back(BVHNode{
+                .bounding_box = bin_aabbs.at(axis).at(i),
+                .left_index = -1,
+                .right_index = -1,
+                .spatial = u32(axis) + 1
+            });
+        }
+    }
+    return {};
+    // =============================================================
 
     AABB left_bounding_box;
     AABB right_bounding_box;
@@ -346,7 +352,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
 
         AABB right_sweep_aabb;
         u32 right_sweep_bin_primitives = 0;
-        for(i32 bin = i32(info.bin_count - 1); bin >= 0; bin--)
+        for(i32 bin = i32(info.bin_count - 2); bin >= 0; bin--)
         {
             // expand bounds of the right sweep bin and increase the count *after* the cost is computed
             //   - this is because left sweep starts with with the 0th bin in the 0th element
@@ -413,7 +419,10 @@ auto BVH::SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInf
             auto centroid_second = second.aabb.get_axis_centroid(static_cast<Axis>(axis));
             if(centroid_first == centroid_second)
             {
-                // assert(first.aabb.get_area() == second.aabb.get_area());
+                if(first.aabb.get_area() == second.aabb.get_area())
+                {
+                    return first.primitive < second.primitive;
+                }
                 return first.aabb.get_area() < second.aabb.get_area();
             }
             return centroid_first < centroid_second;
@@ -481,7 +490,10 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             auto centroid_second = second.aabb.get_axis_centroid(static_cast<Axis>(info.split.axis));
             if(centroid_first == centroid_second)
             {
-                // assert(first.aabb.get_area() == second.aabb.get_area());
+                if(first.aabb.get_area() == second.aabb.get_area())
+                {
+                    return first.primitive < second.primitive;
+                }
                 return first.aabb.get_area() < second.aabb.get_area();
             }
             return centroid_first < centroid_second;
@@ -546,35 +558,59 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             AABB dummy_aabb;
             // because of how project primitive into bin is written we need three projections here
             const f32 offset = 1000.0f;
-            project_primitive_into_bin_fast({
-                .triangle = *border_primitive.primitive,
-                .splitting_axis = info.split.axis,
-                .left_plane_axis_coord = parent_node.bounding_box.min_bounds[info.split.axis] - offset,
-                .right_plane_axis_coord = parent_node.bounding_box.min_bounds[info.split.axis],
-                .parent_aabb = parent_node.bounding_box,
-                .left_aabb = dummy_aabb,
-                .right_aabb = expanded_left_aabb
-            });
+            if(parent_node.bounding_box.contains(*border_primitive.primitive))
+            {
+                project_primitive_into_bin_fast({
+                    .triangle = *border_primitive.primitive,
+                    .splitting_axis = info.split.axis,
+                    .left_plane_axis_coord = parent_node.bounding_box.min_bounds[info.split.axis] - offset,
+                    .right_plane_axis_coord = parent_node.bounding_box.min_bounds[info.split.axis],
+                    .parent_aabb = parent_node.bounding_box,
+                    .left_aabb = dummy_aabb,
+                    .right_aabb = expanded_left_aabb
+                });
 
-            project_primitive_into_bin_fast({
-                .triangle = *border_primitive.primitive,
-                .splitting_axis = info.split.axis,
-                .left_plane_axis_coord = parent_node.bounding_box.min_bounds[info.split.axis],
-                .right_plane_axis_coord = splitting_plane,
-                .parent_aabb = parent_node.bounding_box,
-                .left_aabb = expanded_left_aabb,
-                .right_aabb = expanded_right_aabb
-            });
+                project_primitive_into_bin_fast({
+                    .triangle = *border_primitive.primitive,
+                    .splitting_axis = info.split.axis,
+                    .left_plane_axis_coord = parent_node.bounding_box.min_bounds[info.split.axis],
+                    .right_plane_axis_coord = splitting_plane,
+                    .parent_aabb = parent_node.bounding_box,
+                    .left_aabb = expanded_left_aabb,
+                    .right_aabb = expanded_right_aabb
+                });
 
-            project_primitive_into_bin_fast({
-                .triangle = *border_primitive.primitive,
-                .splitting_axis = info.split.axis,
-                .left_plane_axis_coord = splitting_plane,
-                .right_plane_axis_coord = parent_node.bounding_box.max_bounds[info.split.axis],
-                .parent_aabb = parent_node.bounding_box,
-                .left_aabb = expanded_right_aabb,
-                .right_aabb = expanded_right_aabb
-            });
+                project_primitive_into_bin_fast({
+                    .triangle = *border_primitive.primitive,
+                    .splitting_axis = info.split.axis,
+                    .left_plane_axis_coord = splitting_plane,
+                    .right_plane_axis_coord = parent_node.bounding_box.max_bounds[info.split.axis],
+                    .parent_aabb = parent_node.bounding_box,
+                    .left_aabb = expanded_right_aabb,
+                    .right_aabb = expanded_right_aabb
+                });
+            } else 
+            {
+                project_primitive_into_bin_slow({
+                    .triangle = *border_primitive.primitive,
+                    .splitting_axis = info.split.axis,
+                    .left_plane_axis_coord = parent_node.bounding_box.min_bounds[info.split.axis],
+                    .right_plane_axis_coord = splitting_plane,
+                    .parent_aabb = parent_node.bounding_box,
+                    .left_aabb = expanded_left_aabb,
+                    .right_aabb = expanded_right_aabb
+                });
+
+                project_primitive_into_bin_slow({
+                    .triangle = *border_primitive.primitive,
+                    .splitting_axis = info.split.axis,
+                    .left_plane_axis_coord = splitting_plane,
+                    .right_plane_axis_coord = parent_node.bounding_box.max_bounds[info.split.axis],
+                    .parent_aabb = parent_node.bounding_box,
+                    .left_aabb = expanded_right_aabb,
+                    .right_aabb = expanded_right_aabb
+                });
+            }
 
             SAHCalculateInfo sah_calc_info = SAHCalculateInfo{
                 .left_primitive_count = static_cast<u32>(left_primitive_aabbs.size() + 1),
@@ -650,9 +686,6 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
         right_child.spatial = 1u;
 #endif
         bvh_nodes.at(info.node_idx).right_index = i32(bvh_nodes.size() - 1);
-
-
-
         return {left_primitive_aabbs, right_primitive_aabbs};
     };
 
@@ -699,7 +732,7 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
     return {};
 }
 
-auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> BVHStats
+auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info, /*NOTE(msakmary) SPATIAL DEBUG */AABB debug_bvh) -> BVHStats
 {
     spatial_index = 0;
     BVHStats stats = BVHStats {
@@ -730,11 +763,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
     std::for_each(primitive_aabbs.begin(), primitive_aabbs.end(), [&](const PrimitiveAABB & aabb)
         {bvh_nodes.at(root_node_idx).bounding_box.expand_bounds(aabb.aabb);});
 
-    // ================== SPATIAL SPLITS DEBUG CODE ================
-    auto scale = bvh_nodes.at(root_node_idx).bounding_box.max_bounds - bvh_nodes.at(root_node_idx).bounding_box.min_bounds;
-    bvh_nodes.at(root_node_idx).bounding_box.min_bounds[Axis::X] += scale[Axis::X] / 3.0f;
-    // =============================================================
-
+    bvh_nodes.at(root_node_idx).bounding_box = debug_bvh;
     using ProcessNode = std::pair<u32, std::vector<PrimitiveAABB>>; 
     std::queue<ProcessNode> nodes;
     nodes.push({root_node_idx, primitive_aabbs});
@@ -743,7 +772,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
     {
         auto & [node_idx, primitive_aabbs] = nodes.front();
 
-        // ================== SPATIAL SPLITS DEBUG CODE ================
+        // ================= NOTE(msakmary) SPATIAL DEBUG ==============
         BestSplitInfo spatial_split = spatial_best_split({
             .ray_primitive_cost = info.ray_primitive_intersection_cost,
             .ray_aabb_test_cost = info.ray_aabb_intersection_cost,
@@ -753,7 +782,6 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
         });
         return stats;
         // =============================================================
-
         if(primitive_aabbs.size() == 1) 
         { 
             create_leaf({
@@ -764,14 +792,14 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
             nodes.pop();
             continue;
         }
-
-        BestSplitInfo best_split = SAH_greedy_best_split({
+        BestSplitInfo object_split = SAH_greedy_best_split({
             .ray_primitive_cost = info.ray_primitive_intersection_cost,
             .ray_aabb_test_cost = info.ray_aabb_intersection_cost,
             .node_idx = node_idx,
             .primitive_aabbs = primitive_aabbs,
             .join_leaves = info.join_leaves
         });
+        BestSplitInfo best_split = object_split;
 
         if(best_split.axis == Axis::LAST)
         {
@@ -831,6 +859,23 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
             .ray_primitive_intersection_cost = info.ray_primitive_intersection_cost,
             .ray_aabb_intersection_cost = info.ray_aabb_intersection_cost
         });
+        
+        // There may occur a case where we calculate a spatial split but later unsplit this reference so that left has all the primitives
+        // and right has none which than just creates and identical node we need to perform object split on this node instead
+        // if(left_primitive_aabbs.size() == 0 || right_primitive_aabbs.size() == 0)
+        // {
+        //     bvh_nodes.pop_back();
+        //     bvh_nodes.pop_back();
+        //     auto [left_primitive_aabbs_, right_primitive_aabbs_] = split_node({
+        //         .split = object_split,
+        //         .primitive_aabbs = primitive_aabbs,
+        //         .node_idx = node_idx,
+        //         .ray_primitive_intersection_cost = info.ray_primitive_intersection_cost,
+        //         .ray_aabb_intersection_cost = info.ray_aabb_intersection_cost
+        //     });
+        //     left_primitive_aabbs = std::move(left_primitive_aabbs_);
+        //     right_primitive_aabbs = std::move(right_primitive_aabbs_);
+        // }
 
         if(left_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).left_index, std::move(left_primitive_aabbs));}
         if(right_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).right_index, std::move(right_primitive_aabbs));}
@@ -863,22 +908,21 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
     std::vector<AABBGeometryInfo> info;
     info.reserve(bvh_nodes.size());
     if(bvh_nodes.empty()) {return info;}
-    // ================== SPATIAL SPLITS DEBUG CODE ================
-    for(int i = 0; i < bvh_nodes.size(); i++)
-    {
-        const auto & node = bvh_nodes.at(i);
-        info.emplace_back(AABBGeometryInfo{
-            .position = daxa_vec3_from_glm(node.bounding_box.min_bounds),
-            .scale = daxa_vec3_from_glm(node.bounding_box.max_bounds - node.bounding_box.min_bounds),
-            .depth = static_cast<daxa::u32>(i),
-            .spatial = node.spatial
-        });
-    }
-    return info;
-    // =============================================================
 
     const auto & root_node = bvh_nodes.at(0);
     using Node = std::pair<u32, const BVHNode &>;  
+    // ================= NOTE(msakmary) SPATIAL DEBUG ==============
+    for(int i = 0; i < bvh_nodes.size(); i++)
+    {
+        const auto & aabb = bvh_nodes.at(i).bounding_box;
+        info.emplace_back(AABBGeometryInfo{
+            .position = daxa_vec3_from_glm(aabb.min_bounds),
+            .scale = daxa_vec3_from_glm(aabb.max_bounds - aabb.min_bounds),
+            .depth = static_cast<daxa::u32>(0),
+            .spatial = bvh_nodes.at(i).spatial
+        });
+    }
+    // =============================================================
 
     std::queue<Node> que;
     que.push({0u, root_node});
