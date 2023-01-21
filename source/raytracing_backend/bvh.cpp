@@ -264,7 +264,22 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
             // entire aabb lies in the bin just add it directly
             if(start_bin_idx[axis] == end_bin_idx[axis])
             {
-                bin_aabbs.at(axis).at(start_bin_idx[axis]).expand_bounds(primitive_aabb.aabb);
+                if(bin_aabbs.at(axis).at(start_bin_idx[axis]).contains(*primitive_aabb.primitive))
+                {
+                    bin_aabbs.at(axis).at(start_bin_idx[axis]).expand_bounds(primitive_aabb.aabb);
+                } 
+                else 
+                {
+                    project_primitive_into_bin_slow({
+                        .triangle = primitive,
+                        .splitting_axis = static_cast<Axis>(axis),
+                        .left_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * start_bin_idx[axis],
+                        .right_plane_axis_coord = parent_aabb.min_bounds[axis] + bin_size[axis] * (start_bin_idx[axis] + 1),
+                        .parent_aabb = parent_aabb,
+                        .left_aabb = bin_aabbs.at(axis).at(start_bin_idx[axis]),
+                        .right_aabb = bin_aabbs.at(axis).at(start_bin_idx[axis])
+                    });
+                }
                 continue;
             }
 

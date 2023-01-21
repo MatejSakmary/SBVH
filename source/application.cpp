@@ -151,7 +151,7 @@ void Application::ui_update()
     i32 slider_tmp = state.bvh_info.spatial_bin_count;
     ImGui::InputFloat("Ray-triangle cost", &state.bvh_info.ray_primitive_intersection_cost);
     ImGui::InputFloat("Ray-AABB cost", &state.bvh_info.ray_aabb_intersection_cost);
-    ImGui::SliderInt("Spatial Splits", &slider_tmp, 0, 256);
+    ImGui::SliderInt("Spatial Splits", &slider_tmp, 1, 256);
     ImGui::InputFloat("Spatial alpha", &state.bvh_info.spatial_alpha, 0.0001f, 0.001f, "%.6f");
     ImGui::Checkbox("Join leaves", &state.bvh_info.join_leaves);
     if (ImGui::Button("Rebuild BVH", {100, 20})) { rebuild_bvh(state.bvh_info); }
