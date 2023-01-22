@@ -128,12 +128,34 @@ auto AABB::ray_box_intersection(Ray ray) const -> Hit
     return result;
 }
 
+auto AABB::contains(const f32vec3 & vertex) const -> bool
+{
+    // assert use of uninitizalied bin
+    assert(min_bounds != f32vec3(INFINITY) && max_bounds != f32vec3(-INFINITY));
+    if( vertex.x < min_bounds.x ||
+        vertex.y < min_bounds.y ||
+        vertex.z < min_bounds.z ||
+        vertex.x > max_bounds.x ||
+        vertex.y > max_bounds.y ||
+        vertex.z > max_bounds.z)
+    {
+        return false;
+    }
+    return true;
+}
+
 auto AABB::contains(const Triangle & primitive) const -> bool
 {
+    // assert use of uninitizalied bin
+    assert(min_bounds != f32vec3(INFINITY) && max_bounds != f32vec3(-INFINITY));
     for(int i = 0; i < 3; i++)
     {
-        if( ! (glm::all(glm::greaterThan(primitive[i], min_bounds)) &&
-               glm::all(glm::lessThan(primitive[i], max_bounds))))
+        if(primitive[i].x < min_bounds.x ||
+           primitive[i].y < min_bounds.y ||
+           primitive[i].z < min_bounds.z ||
+           primitive[i].x > max_bounds.x ||
+           primitive[i].y > max_bounds.y ||
+           primitive[i].z > max_bounds.z)
         {
             return false;
         }

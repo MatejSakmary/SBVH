@@ -183,7 +183,7 @@ auto BVH::project_primitive_into_bin_slow(const ProjectPrimitiveInfo & info) -> 
 
     for(i32 axis = Axis::X; axis < Axis::LAST; axis++)
     {
-        if(triangle_aabb.max_bounds[axis] > bin_aabb.min_bounds[axis])
+        if(triangle_aabb.max_bounds[axis] >= bin_aabb.min_bounds[axis])
         {
             std::swap(back_polygon, curr_polygon);
             clip_axis_plane(ClipAxisPlaneInfo{
@@ -194,7 +194,7 @@ auto BVH::project_primitive_into_bin_slow(const ProjectPrimitiveInfo & info) -> 
                 .far = false
             });
         }
-        if(triangle_aabb.min_bounds[axis] < bin_aabb.max_bounds[axis])
+        if(triangle_aabb.min_bounds[axis] <= bin_aabb.max_bounds[axis])
         {
             std::swap(back_polygon, curr_polygon);
             clip_axis_plane(ClipAxisPlaneInfo{
@@ -264,7 +264,10 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
             // entire aabb lies in the bin just add it directly
             if(start_bin_idx[axis] == end_bin_idx[axis])
             {
-                if(bin_aabbs.at(axis).at(start_bin_idx[axis]).contains(*primitive_aabb.primitive))
+                AABB dummy_bin_aabb = parent_aabb;
+                dummy_bin_aabb.min_bounds[axis] = parent_aabb.min_bounds[axis] + bin_size[axis] * start_bin_idx[axis];
+                dummy_bin_aabb.max_bounds[axis] = parent_aabb.min_bounds[axis] + bin_size[axis] * (start_bin_idx[axis] + 1);
+                if(dummy_bin_aabb.contains(*primitive_aabb.primitive))
                 {
                     bin_aabbs.at(axis).at(start_bin_idx[axis]).expand_bounds(primitive_aabb.aabb);
                 } 

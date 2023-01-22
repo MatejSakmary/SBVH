@@ -23,6 +23,7 @@ struct AABB
     [[nodiscard]] auto check_if_valid() const -> bool;
     [[nodiscard]] auto get_area() const -> f32;
     [[nodiscard]] auto contains(const Triangle & primitive) const -> bool;
+    [[nodiscard]] auto contains(const f32vec3 & vertex) const -> bool;
 
     // return the coordinate corresponding to the axis selection 
     [[nodiscard]] inline auto get_axis_centroid(Axis axis) const -> float
