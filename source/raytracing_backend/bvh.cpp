@@ -140,8 +140,8 @@ auto BVH::clip_axis_plane(const ClipAxisPlaneInfo & info) -> void
                     }
                     case ON_BOUNDARY:
                     {
-                        info.curr_polygon->push_back(*b);
                         info.curr_polygon->push_back(*a);
+                        info.curr_polygon->push_back(*b);
                         break;
                     }
                     case ON_NEGATIVE_SIDE:
