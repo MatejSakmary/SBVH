@@ -133,7 +133,7 @@ Scene::Scene(const std::string & scene_path)
     process_scene(scene);
 }
 
-auto Scene::build_bvh(const ConstructBVHInfo & info, /* NOTE(msakmary) SPATIAL DEBUG*/ AABB debug_aabb) -> BVHStats
+auto Scene::build_bvh(const ConstructBVHInfo & info) -> BVHStats
 {
-    return raytracing_scene.bvh.construct_bvh_from_data( raytracing_scene.primitives, info, debug_aabb);
+    return raytracing_scene.bvh.construct_bvh_from_data( raytracing_scene.primitives, info);
 }

@@ -43,9 +43,10 @@ void main()
     mat4 m_proj_view_model = deref(camera_transforms).m_proj_view * m_model;
     depth_out = deref(aabb_transforms[gl_InstanceIndex]).depth;
 
-    // if(spatial >= daxa_push_constant.bvh_visualization_depth * 3 * 9 + 1 * 3 &&
-    //    spatial < daxa_push_constant.bvh_visualization_depth * 3 * 9 + 3 * 9) 
-    if(spatial == daxa_push_constant.bvh_visualization_depth || idx == 0)
+    // if(depth_out == daxa_push_constant.bvh_visualization_depth || idx == 0)
+    if(idx == daxa_push_constant.bvh_visualization_depth || idx == 30 || idx == 61)
+    // if(idx == daxa_push_constant.bvh_visualization_depth )
+    // if(spatial == 2)
     {
         gl_Position = m_proj_view_model * pre_trans_pos;
     }
@@ -75,6 +76,10 @@ void main()
     if(spatial == 1)
     {
         color = f32vec4(0.0, 0.0, 1.0, 1.0);
+    }
+    if(idx == 185 || idx == 186)
+    {
+        color = f32vec4(0.0, 1.0, 0.0, 1.0);
     }
 #endif
     out_color = f32vec4(color);

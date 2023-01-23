@@ -87,9 +87,9 @@ auto Raytracer::ray_gen(const Scene & scene, const Ray & ray) -> f32vec3
     if(!hit.hit) 
     {
         return f32vec3(0.0f, 0.0f, 0.0f);
-    } else {
-        return (hit.normal + f32vec3(1.0f)) * 0.5f;
-    }
+    } //else {
+        //return (hit.normal + f32vec3(1.0f)) * 0.5f;
+    //}
 
     auto hit_position = ray.start + (ray.direction * hit.distance) + (0.005f * hit.normal);
     Ray to_light = Ray(hit_position, light_position - hit_position);

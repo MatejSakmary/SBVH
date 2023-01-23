@@ -113,20 +113,6 @@ void Application::ui_update()
     state.light_position.y = light_pos[1];
     state.light_position.z = light_pos[2];
 
-    /*NOTE(msakmary) SPATIAL DEBUG */
-    f32 min_bounds[] = {state.min_bounds.x, state.min_bounds.y, state.min_bounds.z};
-    ImGui::SliderFloat3("Min bounds", min_bounds, -1000.0f, 1000.0f);
-    state.min_bounds.x = min_bounds[0];
-    state.min_bounds.y = min_bounds[1];
-    state.min_bounds.z = min_bounds[2];
-
-    f32 max_bounds[] = {state.max_bounds.x, state.max_bounds.y, state.max_bounds.z};
-    ImGui::SliderFloat3("Max bounds", max_bounds, -1000.0f, 1000.0f);
-    state.max_bounds.x = max_bounds[0];
-    state.max_bounds.y = max_bounds[1];
-    state.max_bounds.z = max_bounds[2];
-    rebuild_bvh(state.bvh_info);
-    /* =============================================================== */
     ImGui::InputInt("BVH depth", &state.visualized_depth, 1, 10);
     renderer.set_bvh_visualization_depth(state.visualized_depth);
     ImGui::End();
@@ -164,8 +150,6 @@ void Application::ui_update()
     if(state.file_browser.HasSelected())
     {
         reload_scene(state.file_browser.GetSelected().string());
-        /* NOTE(msakmary) SPATIAL DEBUG CODE */
-        rebuild_bvh(state.bvh_info);
         state.file_browser.ClearSelected();
     }
 
@@ -221,7 +205,7 @@ void Application::reload_scene(const std::string & path)
 
 void Application::rebuild_bvh(const ConstructBVHInfo & info)
 {
-    state.bvh_stats = scene.build_bvh(info, AABB(state.min_bounds, state.max_bounds));
+    state.bvh_stats = scene.build_bvh(info);
     renderer.reload_bvh_data(scene.raytracing_scene.bvh);
 }
 

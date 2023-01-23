@@ -36,10 +36,6 @@ struct Application
         f64 raytrace_time = 0.0;
         f32vec2 last_mouse_pos;
         f32vec3 light_position = f32vec3(-11.0f, 15.0f, 7.0f);
-        /*NOTE(msakmary) SPATIAL DEBUG */
-        f32vec3 min_bounds = f32vec3(-100.0f, -100.0f, -100.0f);
-        f32vec3 max_bounds = f32vec3(100.0f, 100.0f, 100.0f);
-        /*=============================*/
         ImGui::FileBrowser file_browser;
         ConstructBVHInfo bvh_info;
         BVHStats bvh_stats;
