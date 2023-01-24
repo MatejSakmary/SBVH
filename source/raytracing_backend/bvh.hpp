@@ -32,6 +32,12 @@ enum SplitType
     SPATIAL,
 };
 
+struct NodeSpan 
+{ 
+    size_t start;
+    size_t size;
+};
+
 struct PrimitiveAABB
 {
     AABB aabb;
@@ -71,7 +77,7 @@ struct SAHGreedySplitInfo
     const float ray_primitive_cost;
     const float ray_aabb_test_cost;
     const u32 & node_idx;
-    std::vector<PrimitiveAABB> & primitive_aabbs;
+    const NodeSpan node_span;
     const bool join_leaves;
 };
 
@@ -81,13 +87,13 @@ struct SpatialSplitInfo
     const float ray_aabb_test_cost;
     const u32 bin_count;
     const u32 & node_idx;
-    std::vector<PrimitiveAABB> & primitive_aabbs;
+    const NodeSpan node_span;
 };
 
 struct SplitNodeInfo
 {
     const BestSplitInfo & split;
-    std::vector<PrimitiveAABB> & primitive_aabbs;
+    const NodeSpan node_span;
     const u32 node_idx;
     const f32 ray_primitive_intersection_cost;
     const f32 ray_aabb_intersection_cost;
@@ -129,7 +135,7 @@ struct CreateLeafInfo
 {
     BVHStats & stats;
     u32 node_idx;
-    std::vector<PrimitiveAABB> & primitives;
+    NodeSpan node_span;
 };
 
 struct ClipAxisPlaneInfo
@@ -154,12 +160,13 @@ struct BVH
     [[nodiscard]] auto get_nearest_intersection(const Ray & ray) const -> Hit;
 
     private:
-        using SplitPrimitives = std::pair<std::vector<PrimitiveAABB>,std::vector<PrimitiveAABB>>;
+        using SplitPrimitives = std::pair<NodeSpan,NodeSpan>;
 
         auto SAH_greedy_best_split(const SAHGreedySplitInfo & info) -> BestSplitInfo;
         auto spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo;
         auto split_node(const SplitNodeInfo & info) -> SplitPrimitives;
         auto create_leaf(const CreateLeafInfo & info) -> void;
+        std::vector<PrimitiveAABB> primitive_aabbs_global;
         std::vector<BVHNode> bvh_nodes;
         std::vector<BVHLeaf> bvh_leaves;
 };
