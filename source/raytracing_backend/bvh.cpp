@@ -296,7 +296,8 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
             // to the bounding box of the entire scene. This is because the benefit of using slow projection will be small
             // on these small nodes so we prefer the speed and simplicity of the fast projection method.
             if(parent_node.bounding_box.contains(*primitive_aabb.primitive) ||
-               primitive_aabb.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f)
+               primitive_aabb.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f ||
+               glm::any(glm::lessThan(primitive_aabb.aabb.max_bounds - primitive_aabb.aabb.min_bounds, f32vec3(0.01f))))
             {
                 // clip the primitive by the right bin border and expand the bins aabb
                 // there are some cases we have to take care of
@@ -591,7 +592,8 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             // on these small nodes so we prefer the speed and simplicity of the fast projection method.
             const auto border_primitive = *it;
             if( parent_node.bounding_box.contains(*border_primitive.primitive) ||
-                border_primitive.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f)
+                border_primitive.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f ||
+                glm::any(glm::lessThan(border_primitive.aabb.max_bounds - border_primitive.aabb.min_bounds, f32vec3(0.01f))))
             {
                 // because of how project primitive into bin is written we need three projections here
                 project_primitive_into_bin_fast({
