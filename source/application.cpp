@@ -140,6 +140,12 @@ void Application::ui_update()
     ImGui::SliderInt("Spatial Splits", &slider_tmp, 1, 256);
     ImGui::InputFloat("Spatial alpha", &state.bvh_info.spatial_alpha, 0.0001f, 0.001f, "%.6f");
     ImGui::Checkbox("Join leaves", &state.bvh_info.join_leaves);
+
+    if(!state.bvh_info.join_leaves) { ImGui::BeginDisabled(); }
+    ImGui::InputInt("Max triangles in leaf", &state.bvh_info.max_triangles_in_leaves);
+    ImGui::InputInt("Min join depth", &state.bvh_info.min_depth_for_join);
+    if(!state.bvh_info.join_leaves) { ImGui::EndDisabled(); }
+
     if (ImGui::Button("Rebuild BVH", {100, 20})) { rebuild_bvh(state.bvh_info); }
     ImGui::End();
 

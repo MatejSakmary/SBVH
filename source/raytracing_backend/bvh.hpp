@@ -111,6 +111,8 @@ struct ConstructBVHInfo
     u32 spatial_bin_count;
     f32 spatial_alpha;
     bool join_leaves;
+    i32 max_triangles_in_leaves;
+    i32 min_depth_for_join;
 };
 
 struct BVHStats

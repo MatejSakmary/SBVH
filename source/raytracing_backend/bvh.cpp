@@ -7,6 +7,7 @@
 #include <glm/vector_relational.hpp>
 #include <queue>
 #include <array>
+#include <tuple>
 
 auto BVH::project_primitive_into_bin_fast(const ProjectPrimitiveInfo & info) -> void
 {
@@ -248,7 +249,6 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
 
         i32vec3 start_bin_idx = glm::trunc(((primitive_aabb.aabb.min_bounds) - parent_aabb.min_bounds) / bin_size);
         i32vec3 end_bin_idx = glm::trunc(((primitive_aabb.aabb.max_bounds) - parent_aabb.min_bounds) / bin_size);
-        // TODO(msakmary) The error could be in the start/end indices whenever the AABB completely misses the triangle CONTINUE HERE!
         // start_bin_idx and end_bin_idx should be value in the range [0, bin_count - 1]
         start_bin_idx = glm::clamp(start_bin_idx, i32vec3(0), i32vec3(info.bin_count - 1));
         end_bin_idx = glm::clamp(end_bin_idx, i32vec3(0), i32vec3(info.bin_count - 1));
@@ -264,6 +264,8 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
             // entire aabb lies in the bin just add it directly
             if(start_bin_idx[axis] == end_bin_idx[axis])
             {
+                // We need to check if the aabb does not span beyond the current bin 
+                //  - if it does we need to project it into the bin instead
                 AABB dummy_bin_aabb = parent_aabb;
                 dummy_bin_aabb.min_bounds[axis] = parent_aabb.min_bounds[axis] + bin_size[axis] * start_bin_idx[axis];
                 dummy_bin_aabb.max_bounds[axis] = parent_aabb.min_bounds[axis] + bin_size[axis] * (start_bin_idx[axis] + 1);
@@ -286,7 +288,12 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
                 continue;
             }
 
-            if(parent_node.bounding_box.contains(*primitive_aabb.primitive) || primitive_aabb.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f)
+            // if the triangle primitive is fully contained inside of the node bounding box fast projection will not
+            // produce any artifacts so we can safely use it. We also use it if the current box is small enough compared
+            // to the bounding box of the entire scene. This is because the benefit of using slow projection will be small
+            // on these small nodes so we prefer the speed and simplicity of the fast projection method.
+            if(parent_node.bounding_box.contains(*primitive_aabb.primitive) ||
+               primitive_aabb.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f)
             {
                 // clip the primitive by the right bin border and expand the bins aabb
                 // there are some cases we have to take care of
@@ -354,7 +361,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
 
         AABB right_sweep_aabb;
         u32 right_sweep_bin_primitives = 0;
-        for(i32 bin = i32(info.bin_count - 2); bin >= 0; bin--)
+        for(i32 bin = i32(info.bin_count - 1); bin >= 0; bin--)
         {
             // expand bounds of the right sweep bin and increase the count *after* the cost is computed
             //   - this is because left sweep starts with with the 0th bin in the 0th element
@@ -560,10 +567,15 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             AABB left_clipped_aabb;
             AABB right_clipped_aabb;
             AABB dummy_aabb;
-            // because of how project primitive into bin is written we need three projections here
             const f32 offset = 1000.0f;
-            if( parent_node.bounding_box.contains(*border_primitive.primitive) || border_primitive.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f)
+            // if the triangle primitive is fully contained inside of the node bounding box fast projection will not
+            // produce any artifacts so we can safely use it. We also use it if the current box is small enough compared
+            // to the bounding box of the entire scene. This is because the benefit of using slow projection will be small
+            // on these small nodes so we prefer the speed and simplicity of the fast projection method.
+            if( parent_node.bounding_box.contains(*border_primitive.primitive) ||
+                border_primitive.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f)
             {
+                // because of how project primitive into bin is written we need three projections here
                 project_primitive_into_bin_fast({
                     .triangle = *border_primitive.primitive,
                     .splitting_axis = info.split.axis,
@@ -710,9 +722,6 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
                 if(info.primitive_aabbs.at(i).aabb.check_if_valid())
                 {
                     left_primitive_aabbs.emplace_back(info.primitive_aabbs.at(i));
-                }else
-                {
-                    DEBUG_OUT("discarding primitive");
                 }
             }
             for(int i = split_event; i < info.primitive_aabbs.size(); i++)
@@ -720,10 +729,6 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
                 if(info.primitive_aabbs.at(i).aabb.check_if_valid())
                 {
                     right_primitive_aabbs.emplace_back(info.primitive_aabbs.at(i));
-                }
-                else
-                {
-                    DEBUG_OUT("discarding primitive");
                 }
             }
             return {left_primitive_aabbs, right_primitive_aabbs};
@@ -767,13 +772,13 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
     std::for_each(primitive_aabbs.begin(), primitive_aabbs.end(), [&](const PrimitiveAABB & aabb)
         {bvh_nodes.at(root_node_idx).bounding_box.expand_bounds(aabb.aabb);});
 
-    using ProcessNode = std::pair<u32, std::vector<PrimitiveAABB>>; 
+    using ProcessNode = std::tuple<u32, std::vector<PrimitiveAABB>, u32>; 
     std::queue<ProcessNode> nodes;
-    nodes.push({root_node_idx, primitive_aabbs});
+    nodes.push({root_node_idx, primitive_aabbs, 0});
 
     while(!nodes.empty())
     {
-        auto & [node_idx, primitive_aabbs] = nodes.front();
+        auto & [node_idx, primitive_aabbs, depth] = nodes.front();
 
         if(primitive_aabbs.size() == 1) 
         { 
@@ -785,12 +790,19 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
             nodes.pop();
             continue;
         }
+
+        bool join_leaves = 
+            (info.join_leaves) &&
+            (primitive_aabbs.size() < info.max_triangles_in_leaves) &&
+            (depth > info.min_depth_for_join) ?
+            true : false;
+
         BestSplitInfo object_split = SAH_greedy_best_split({
             .ray_primitive_cost = info.ray_primitive_intersection_cost,
             .ray_aabb_test_cost = info.ray_aabb_intersection_cost,
             .node_idx = node_idx,
             .primitive_aabbs = primitive_aabbs,
-            .join_leaves = info.join_leaves
+            .join_leaves = join_leaves
         });
         BestSplitInfo best_split = object_split;
 
@@ -871,8 +883,8 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
             right_primitive_aabbs = std::move(right_primitive_aabbs_);
         }
 
-        if(left_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).left_index, std::move(left_primitive_aabbs));}
-        if(right_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).right_index, std::move(right_primitive_aabbs));}
+        if(left_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).left_index, std::move(left_primitive_aabbs), depth + 1);}
+        if(right_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).right_index, std::move(right_primitive_aabbs), depth + 1);}
         nodes.pop();
     }
     auto end_time = std::chrono::high_resolution_clock::now();

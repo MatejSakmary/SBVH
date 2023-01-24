@@ -143,10 +143,10 @@ auto Raytracer::ray_gen(const Scene & scene, const Ray & ray) -> f32vec3
         //return (hit.normal + f32vec3(1.0f)) * 0.5f;
     //}
 #ifdef TRACK_TRAVERSE_STEP_COUNT
-    else 
-    {
-        return get_pseudocolor_cool_warm(hit.traversal_steps, 1, 400);
-    }
+    // else 
+    // {
+    //     return get_pseudocolor_cool_warm(hit.traversal_steps, 30, 150);
+    // }
 #endif
 
 
