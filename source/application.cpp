@@ -215,7 +215,7 @@ void Application::update_app_state()
     state.delta_time =  this_frame_time - state.last_frame_time;
     state.last_frame_time = this_frame_time;
 
-    if(state.key_table.data > 0)
+    if(state.key_table.data > 0 && state.fly_cam == true)
     {
         if(state.key_table.bits.W)      { camera.move_camera(state.delta_time, Direction::FORWARD);    }
         if(state.key_table.bits.A)      { camera.move_camera(state.delta_time, Direction::LEFT);       }

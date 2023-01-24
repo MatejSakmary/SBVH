@@ -286,7 +286,7 @@ auto BVH::spatial_best_split(const SpatialSplitInfo & info) -> BestSplitInfo
                 continue;
             }
 
-            if(true/*parent_node.bounding_box.contains(*primitive_aabb.primitive)*/)
+            if(parent_node.bounding_box.contains(*primitive_aabb.primitive) || primitive_aabb.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f)
             {
                 // clip the primitive by the right bin border and expand the bins aabb
                 // there are some cases we have to take care of
@@ -562,7 +562,7 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             AABB dummy_aabb;
             // because of how project primitive into bin is written we need three projections here
             const f32 offset = 1000.0f;
-            if( false /*parent_node.bounding_box.contains(*border_primitive.primitive)*/)
+            if( parent_node.bounding_box.contains(*border_primitive.primitive) || border_primitive.aabb.get_area() < bvh_nodes.at(0).bounding_box.get_area() / 1000.0f)
             {
                 project_primitive_into_bin_fast({
                     .triangle = *border_primitive.primitive,
@@ -591,8 +591,10 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
                     .right_plane_axis_coord = parent_node.bounding_box.max_bounds[info.split.axis],
                     .parent_aabb = parent_node.bounding_box,
                     .left_aabb = right_clipped_aabb,
-                    .right_aabb = right_clipped_aabb
+                    .right_aabb = dummy_aabb
                 });
+                expanded_left_aabb.expand_bounds(left_clipped_aabb);
+                expanded_right_aabb.expand_bounds(right_clipped_aabb);
             } else 
             {
                 project_primitive_into_bin_slow({
@@ -646,7 +648,7 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
             f32 unsplit_right_cost = SAH(sah_calc_info);
 
             f32 min_sah = glm::min(glm::min(unsplit_right_cost, unsplit_left_cost), split_cost);
-            if(min_sah == split_cost || (left_aabb.get_area() == 0 && right_aabb.get_area() == 0))
+            if(min_sah == split_cost)
             {
                 if(expanded_left_aabb.check_if_valid())
                 {
@@ -773,11 +775,6 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
     {
         auto & [node_idx, primitive_aabbs] = nodes.front();
 
-        if(node_idx == 186 || node_idx == 123 || node_idx == 62 || node_idx == 30)
-        {
-            DEBUG_OUT("here");
-        }
-
         if(primitive_aabbs.size() == 1) 
         { 
             create_leaf({
@@ -832,7 +829,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
                 { 
                     best_split = spatial_split; 
                 }
-            } 
+            }  
         }
 
 #ifdef LOG_DEBUG
@@ -858,20 +855,21 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
         
         // There may occur a case where we calculate a spatial split but later unsplit this reference so that left has all the primitives
         // and right has none which than just creates and identical node we need to perform object split on this node instead
-        // if(left_primitive_aabbs.size() == 0 || right_primitive_aabbs.size() == 0)
-        // {
-        //     bvh_nodes.pop_back();
-        //     bvh_nodes.pop_back();
-        //     auto [left_primitive_aabbs_, right_primitive_aabbs_] = split_node({
-        //         .split = object_split,
-        //         .primitive_aabbs = primitive_aabbs,
-        //         .node_idx = node_idx,
-        //         .ray_primitive_intersection_cost = info.ray_primitive_intersection_cost,
-        //         .ray_aabb_intersection_cost = info.ray_aabb_intersection_cost
-        //     });
-        //     left_primitive_aabbs = std::move(left_primitive_aabbs_);
-        //     right_primitive_aabbs = std::move(right_primitive_aabbs_);
-        // }
+        if(left_primitive_aabbs.size() == 0 || right_primitive_aabbs.size() == 0)
+        {
+            bvh_nodes.pop_back();
+            bvh_nodes.pop_back();
+            DEBUG_OUT("Ignoring spatial split");
+            auto [left_primitive_aabbs_, right_primitive_aabbs_] = split_node({
+                .split = object_split,
+                .primitive_aabbs = primitive_aabbs,
+                .node_idx = node_idx,
+                .ray_primitive_intersection_cost = info.ray_primitive_intersection_cost,
+                .ray_aabb_intersection_cost = info.ray_aabb_intersection_cost
+            });
+            left_primitive_aabbs = std::move(left_primitive_aabbs_);
+            right_primitive_aabbs = std::move(right_primitive_aabbs_);
+        }
 
         if(left_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).left_index, std::move(left_primitive_aabbs));}
         if(right_primitive_aabbs.size() >= 1) {nodes.emplace(bvh_nodes.at(node_idx).right_index, std::move(right_primitive_aabbs));}

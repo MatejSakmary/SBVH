@@ -117,10 +117,12 @@ Scene::Scene(const std::string & scene_path)
 {
     Assimp::Importer importer;
     const aiScene * scene = importer.ReadFile( 
-        scene_path, 
+        scene_path,
+        // 0u 
         aiProcess_Triangulate           |
         aiProcess_JoinIdenticalVertices |
-        aiProcess_SortByPType);
+        aiProcess_SortByPType
+    );
 
     if((scene == nullptr) || ((scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) != 0u) || (scene->mRootNode == nullptr))
     {
