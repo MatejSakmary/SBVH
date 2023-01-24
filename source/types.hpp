@@ -46,7 +46,6 @@ using i32vec4 = glm::ivec4;
 
 using f32mat4x4 = glm::mat4x4;
 
-using Polygon = std::vector<f32vec3>;
 
 enum Direction
 {
@@ -84,3 +83,10 @@ struct Ray
 };
 
 const f32 EPSILON = 1.0e-9;
+
+// Windows API has a function called Polygon() which than clashes 
+// with this definition
+namespace types
+{
+    using Polygon = std::vector<f32vec3>;
+}

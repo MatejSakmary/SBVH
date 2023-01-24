@@ -172,9 +172,9 @@ auto BVH::project_primitive_into_bin_slow(const ProjectPrimitiveInfo & info) -> 
     bin_aabb_min[info.splitting_axis] = info.left_plane_axis_coord;
     bin_aabb_max[info.splitting_axis] = info.right_plane_axis_coord;
     AABB bin_aabb = AABB(bin_aabb_min, bin_aabb_max);
-    std::array<Polygon,2> polygons;
-    Polygon * back_polygon = &polygons.at(0);
-    Polygon * curr_polygon = &polygons.at(1);
+    std::array<types::Polygon,2> polygons;
+    types::Polygon * back_polygon = &polygons.at(0);
+    types::Polygon * curr_polygon = &polygons.at(1);
 
     if(!do_aabbs_intersect(bin_aabb, triangle_aabb))
     {
@@ -575,7 +575,7 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
         }
 
         std::vector<PrimitiveAABB> duplicated_primitive_aabbs;
-        duplicated_primitive_aabbs.reserve(glm::max(0ul, static_cast<size_t>(right_it - left_it)));
+        duplicated_primitive_aabbs.reserve(glm::max(size_t(0ull), static_cast<size_t>(right_it - left_it)));
         // left_it points to the first border primitive - right_it points to the last border primitive
         for(auto it = left_it; (it != right_it + 1) && (left_it < right_it + 1); )
         {

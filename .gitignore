@@ -49,3 +49,6 @@ resources/*
 
 #hdrimages
 *.hdr
+
+#imgui init file
+imgui.ini

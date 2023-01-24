@@ -140,8 +140,8 @@ struct CreateLeafInfo
 
 struct ClipAxisPlaneInfo
 {
-    Polygon * curr_polygon;
-    const Polygon * back_polygon;
+    types::Polygon * curr_polygon;
+    const types::Polygon * back_polygon;
     Axis clip_axis;
     f32 clip_coord;
     bool far;
