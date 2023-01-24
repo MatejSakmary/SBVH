@@ -67,6 +67,9 @@ struct Hit
     f32 distance;
     f32vec3 normal;
     f32 internal_fac;
+#ifdef TRACK_TRAVERSE_STEP_COUNT
+    i32 traversal_steps;
+#endif
 };
 
 struct Ray

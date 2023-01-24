@@ -950,8 +950,14 @@ auto BVH::get_bvh_visualization_data() const -> std::vector<AABBGeometryInfo>
 auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
 {
     const auto & root_node = bvh_nodes.at(0);
+#ifdef TRACK_TRAVERSE_STEP_COUNT
+    i32 traversal_cnt = 1;
+#endif
 
     auto hit = root_node.bounding_box.ray_box_intersection(ray);
+#ifdef TRACK_TRAVERSE_STEP_COUNT
+        hit.traversal_steps = traversal_cnt;
+#endif
     // The ray missed the scene
     if(!hit.hit) { return hit; }
 
@@ -959,7 +965,7 @@ auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
         .hit = false,
         .distance = INFINITY,
         .normal = f32vec3(0.0f, 0.0f, 0.0f),
-        .internal_fac = 1.0f
+        .internal_fac = 1.0f,
     };
     // Node consists of the bvh_node index and the intersection distance
     using Node = std::pair<i32, f32>;
@@ -982,6 +988,9 @@ auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
     {
         auto [node_idx, intersect_distance] = nodes_queue.top();
         nodes_queue.pop();
+#ifdef TRACK_TRAVERSE_STEP_COUNT
+        traversal_cnt++;
+#endif
         // nearest AABB intersection is farther than nearest primitive hit, stop tracing
         if(intersect_distance > nearest_hit.distance) { break; }
 
@@ -1008,6 +1017,9 @@ auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
             for(const Triangle * leaf_primitive : leaf.primitives)
             {
                 auto leaf_hit = leaf_primitive->intersect_ray(ray);
+#ifdef TRACK_TRAVERSE_STEP_COUNT
+                traversal_cnt++;
+#endif
                 if(leaf_hit.hit && leaf_hit.distance < nearest_hit.distance)
                 {
                     nearest_hit = leaf_hit;
@@ -1015,6 +1027,9 @@ auto BVH::get_nearest_intersection(const Ray & ray) const -> Hit
             }
         }
     }
+#ifdef TRACK_TRAVERSE_STEP_COUNT
+    nearest_hit.traversal_steps = traversal_cnt;
+#endif
     return nearest_hit;
 }
 

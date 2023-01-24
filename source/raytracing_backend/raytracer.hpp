@@ -18,8 +18,12 @@ struct Raytracer
     auto raytrace_scene(const Scene & scene, const Camera & camera) -> f64;
     auto export_image() -> void;
     auto update_resolution(u32vec2 resolution) -> void;
-
     private: 
+#ifdef TRACK_TRAVERSE_STEP_COUNT
+    f32 avg_traversal_steps = 0.0f;
+    i32 max_traversal_steps = 0;
+    i32 min_traversal_steps = INT32_MAX;
+#endif
         u32vec2 resolution;
 
         auto ray_gen(const Scene & scene, const Ray & ray) -> f32vec3;
