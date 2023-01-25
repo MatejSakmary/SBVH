@@ -2,8 +2,12 @@
 #include "camera.hpp"
 
 Renderer::Renderer(const AppWindow & window) :
-    context {.vulkan_context = daxa::create_context({.enable_validation = true})}
+    context { .vulkan_context = {[]() {
+      DEBUG_OUT("balls");
+      return daxa::create_context({.enable_validation = false});
+    }()} }
 {
+    DEBUG_OUT("created context");
     context.device = context.vulkan_context.create_device({.debug_name = "Daxa device"});
     context.swapchain = context.device.create_swapchain({ 
         .native_window = window.get_native_handle(),
@@ -16,7 +20,7 @@ Renderer::Renderer(const AppWindow & window) :
     context.pipeline_manager = daxa::PipelineManager({
         .device = context.device,
         .shader_compile_options = {
-            .root_paths = { DAXA_SHADER_INCLUDE_DIR, "source/rendering_backend", "source/rendering_backend/shaders",},
+            .root_paths = { DAXA_SHADER_INCLUDE_DIR, "source/rendering_backend", "source/rendering_backend/shaders", "shaders", "shared"},
             .language = daxa::ShaderLanguage::GLSL,
         },
         .debug_name = "Pipeline Compiler",

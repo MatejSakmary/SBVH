@@ -51,4 +51,4 @@ resources/*
 *.hdr
 
 #imgui init file
-imgui.ini
+*.ini

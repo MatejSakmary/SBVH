@@ -15,6 +15,7 @@
 #include <daxa/daxa.hpp>
 
 #include "types.hpp"
+#include "utils.hpp"
 
 
 struct WindowVTable
@@ -32,6 +33,7 @@ struct AppWindow
             dimensions{dimensions},
             vtable{vtable}
         {
+            DEBUG_OUT("creating window");
             glfwInit();
             /* Tell GLFW to not create OpenGL context */
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -70,6 +72,7 @@ struct AppWindow
                     vtable.window_resized_callback(x, y); 
                 }
             );
+            DEBUG_OUT("created window");
         }
 
         void set_window_close() { glfwSetWindowShouldClose(window, true); }
