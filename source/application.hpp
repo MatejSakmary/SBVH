@@ -36,9 +36,13 @@ struct Application
         f64 raytrace_time = 0.0;
         f32vec2 last_mouse_pos;
         f32vec3 light_position = f32vec3(-11.0f, 15.0f, 7.0f);
-        ImGui::FileBrowser file_browser;
+        ImGui::FileBrowser scene_file_browser;
+        ImGui::FileBrowser view_file_browser;
         ConstructBVHInfo bvh_info;
         BVHStats bvh_stats;
+        CameraInfo camera_info;
+
+        bool selecting_scene_path = false;
 
         i32 visualized_depth;
 

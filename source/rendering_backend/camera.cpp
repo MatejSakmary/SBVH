@@ -1,10 +1,48 @@
 #include "camera.hpp"
 
+#include <fstream>
+
 Camera::Camera(const CameraInfo & info) : 
     position{info.position}, front{info.front}, up{info.up}, aspect_ratio{info.aspect_ratio}, fov{info.fov},
     speed{100.0f}, pitch{0.0f}, yaw{-90.0f}, sensitivity{0.08f}, 
     roll_sensitivity{20.0f}, roll{0.0f}
 {
+}
+
+void Camera::set_info(const CameraInfo & info)
+{
+    position = info.position;
+    front = info.front;
+    up = info.up;
+    fov = info.fov;
+}
+
+void Camera::parse_view_file(const std::string file_path)
+{
+    std::ifstream file(file_path);
+    std::string content;
+    if(file.is_open())
+    {
+        std::getline(file, content);
+        file.close();
+    }
+    else
+    {
+        DEBUG_OUT("[Camera::parse_view_file()] Error could not open the file at path: " << file_path);
+        return;
+    }
+
+    sscanf_s(content.c_str(), "-vp %f %f %f -vd %f %f %f -vu %f %f %f -vf %f",
+        &position.x, &position.y, &position.z,
+        &front.x, &front.y, &front.z,
+        &up.x, &up.y, &up.z,
+        &fov);
+
+    DEBUG_OUT("[Camera::parese_view_file()] Sucessfully parsed view file new camera params are: ");
+    DEBUG_OUT("               position    : " << position.x << " " << position.y << " " << position.z);
+    DEBUG_OUT("               direction   : " << front.x << " " << front.y << " " << front.z);
+    DEBUG_OUT("               up          : " << up.x << " " << up.y << " " << up.z);
+    DEBUG_OUT("               fov radians : " << fov << " fov degrees: " << glm::degrees(fov));
 }
 
 auto Camera::get_ray(u32vec2 screen_coords, u32vec2 resolution) const -> Ray

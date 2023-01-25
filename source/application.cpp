@@ -101,7 +101,7 @@ void Application::ui_update()
     ImGui::End();
 
     ImGui::Begin("Render controls window");
-    if (ImGui::Button("Reload Scene", {100, 20})) { state.file_browser.Open(); }
+    if (ImGui::Button("Reload Scene", {100, 20})) { state.scene_file_browser.Open(); }
     if (ImGui::Button("Raytrace View", {100, 20})) 
     { 
         scene.light_position = state.light_position;
@@ -122,11 +122,23 @@ void Application::ui_update()
     ImGui::SameLine();
     ImGui::Text("%s", glm::to_string(camera.get_camera_position()).c_str());
 
+    ImGui::InputFloat3("New camera pos: ", reinterpret_cast<f32*>(&state.camera_info.position));
+    ImGui::InputFloat3("New camera dir: ", reinterpret_cast<f32*>(&state.camera_info.front));
+    ImGui::InputFloat3("New camera up: ", reinterpret_cast<f32*>(&state.camera_info.up));
+    ImGui::InputFloat("New camera angle: ", &state.camera_info.fov);
+
+    if(ImGui::Button("Set Camera Params", {150, 20})) { camera.set_info(state.camera_info);}
+    ImGui::SameLine();
+    if(ImGui::Button("Parse view file", {150, 20})) { state.view_file_browser.Open(); }
+
     ImGui::Separator();
     ImGui::Text("triangle count : %u", state.bvh_stats.triangle_count);
     ImGui::Text("inner node_count : %u", state.bvh_stats.inner_node_count);
     ImGui::Text("leaf primitives_count : %u", state.bvh_stats.leaf_primitives_count);
     ImGui::Text("leaf count : %u", state.bvh_stats.leaf_count);
+    ImGui::Text("average leaf depth : %f", state.bvh_stats.average_leaf_depth);
+    ImGui::Text("average primitives in leaf: %f", state.bvh_stats.average_primitives_in_leaf);
+    ImGui::Text("bvh max depth: %u", state.bvh_stats.max_tree_depth);
     ImGui::Text("total cost : %.3f", state.bvh_stats.total_cost);
     ImGui::Text("build time : %.3f ms", state.bvh_stats.build_time);
     ImGui::Separator();
@@ -151,19 +163,25 @@ void Application::ui_update()
 
     state.bvh_info.spatial_bin_count = slider_tmp;
 
-    state.file_browser.Display();
+    state.scene_file_browser.Display();
+    state.view_file_browser.Display();
 
-    if(state.file_browser.HasSelected())
+    if(state.scene_file_browser.HasSelected())
     {
-        reload_scene(state.file_browser.GetSelected().string());
-        state.file_browser.ClearSelected();
+        reload_scene(state.scene_file_browser.GetSelected().string());
+        state.scene_file_browser.ClearSelected();
+    }
+    if(state.view_file_browser.HasSelected())
+    {
+        camera.parse_view_file(state.view_file_browser.GetSelected().string());
+        state.view_file_browser.ClearSelected();
     }
 
     ImGui::Render();
 }
 
 Application::Application() : 
-    window({1080, 720},
+    window({800, 800},
     WindowVTable {
         .mouse_pos_callback = [this](const f64 x, const f64 y)
             {this->mouse_callback(x, y);},
@@ -176,7 +194,8 @@ Application::Application() :
     }),
     state{ 
         .minimized = 0u,
-        .file_browser = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal),
+        .scene_file_browser = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal),
+        .view_file_browser = ImGui::FileBrowser(ImGuiFileBrowserFlags_NoModal),
         .bvh_info = ConstructBVHInfo{
             .ray_primitive_intersection_cost = 2.0f,
             .ray_aabb_intersection_cost = 3.0f,
@@ -190,14 +209,17 @@ Application::Application() :
         .position = {0.0, 0.0, 500.0},
         .front = {0.0, 0.0, -1.0},
         .up = {0.0, 1.0, 0.0}, 
-        .aspect_ratio = 1080.0f/720.0f,
+        .aspect_ratio = 800.0f/800.0f,
         .fov = glm::radians(50.0f)
     }},
     scene{"resources/scenes/cubes/cubes.fbx"},
-    raytracer{{1080, 720}}
+    raytracer{{800, 800}}
 {
-    state.file_browser.SetTitle("Select scene file");
-    state.file_browser.SetTypeFilters({ ".fbx", ".obj" });
+    state.view_file_browser.SetTitle("Select view file");
+    state.view_file_browser.SetTypeFilters({ ".view", ".VIEW" });
+
+    state.scene_file_browser.SetTitle("Select scene file");
+    state.scene_file_browser.SetTypeFilters({ ".fbx", ".obj", ".bin" });
 }
 
 void Application::reload_scene(const std::string & path)

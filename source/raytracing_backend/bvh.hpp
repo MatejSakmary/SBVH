@@ -127,6 +127,9 @@ struct BVHStats
     u32 inner_node_count;
     u32 leaf_primitives_count;
     u32 leaf_count;
+    f32 average_leaf_depth;
+    f32 average_primitives_in_leaf;
+    u32 max_tree_depth;
     f32 total_cost;
     f64 build_time;
 };

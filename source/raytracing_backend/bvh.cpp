@@ -755,11 +755,15 @@ auto BVH::split_node(const SplitNodeInfo & info) -> SplitPrimitives
 auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, const ConstructBVHInfo & info) -> BVHStats
 {
     spatial_index = 0;
+    u64 leaf_depth_sum = 0ul;
     BVHStats stats = BVHStats {
         .triangle_count = 0,
         .inner_node_count = 0,
         .leaf_primitives_count = 0,
         .leaf_count = 0,
+        .average_leaf_depth = 0.0f,
+        .average_primitives_in_leaf = 0.0f,
+        .max_tree_depth = 0u,
         .total_cost = 0.0f,
         .build_time = 0.0
     };
@@ -790,6 +794,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
     while(!nodes.empty())
     {
         auto [node_idx, node_span, depth] = nodes.top();
+        stats.max_tree_depth = glm::max(stats.max_tree_depth, depth);
 
         // Get rid of degenerated aabbs
         for(i32 idx = node_span.start; idx < node_span.start + node_span.size; )
@@ -808,6 +813,7 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
 
         if(node_span.size == 1) 
         { 
+            leaf_depth_sum += depth;
             create_leaf({
                 .stats = stats,
                 .node_idx = node_idx,
@@ -908,10 +914,6 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
         }
 
         nodes.pop();
-        if(bvh_nodes.at(node_idx).left_index == 85 || bvh_nodes.at(node_idx).left_index == 85) 
-        {
-            DEBUG_OUT("here");
-        }
         if(left_span.size >= 1) {nodes.emplace(bvh_nodes.at(node_idx).left_index, left_span, depth + 1);}
         if(right_span.size >= 1) {nodes.emplace(bvh_nodes.at(node_idx).right_index, right_span, depth + 1);}
     }
@@ -921,6 +923,8 @@ auto BVH::construct_bvh_from_data(const std::vector<Triangle> & primitives, cons
     stats.inner_node_count = bvh_nodes.size() - bvh_leaves.size();
     stats.triangle_count = primitives.size();
     stats.leaf_count = bvh_leaves.size();
+    stats.average_leaf_depth = f32(leaf_depth_sum) / f32(stats.leaf_count);
+    stats.average_primitives_in_leaf = f32(bvh_leaves.size()) / f32(stats.leaf_primitives_count);
 
     return stats;
 }
